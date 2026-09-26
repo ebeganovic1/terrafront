@@ -1,0 +1,58 @@
+# TERRAFRONT
+
+Single-player Godot 4 prototype of a future 2D multiplayer strategy game: geography determines the economy. Explore a procedural continent and inspect its resource potential. This prototype has no economy simulation, units, construction, combat or networking.
+
+## Run
+
+Requires Godot 4.3+ stable (validated with 4.7.2), standard version; no .NET or external dependencies. Import `project.godot` in Godot and press F6 on the main scene or F5 for the project. Alternatively, open a new terminal in this directory and run:
+
+```powershell
+godot --path .
+```
+
+The Godot editor includes a GDScript editor. Git is initialized locally. Generated `.godot` cache and `logs` are ignored; `.gd.uid` files should be tracked.
+
+## Controls
+
+| Input | Action |
+| --- | --- |
+| WASD | Move camera |
+| Mouse wheel | Zoom around cursor |
+| Middle mouse drag | Pan |
+| Left click | Inspect tile |
+| Home / return button | Center settlement |
+| Seed + Generate continent | Rebuild deterministic world |
+
+## Implemented
+
+- 160 x 112 grid, 16-pixel tiles; cached Node2D tile drawing, no per-tile nodes.
+- Sea, inland lakes, descending rivers, coast, plains, forest, mountain, desert, swamp and snow.
+- Elevation, moisture, temperature and terrain access in an independent world model.
+- Food, Wood, Stone, Iron, Oil, Water potential from 0 to 5; values are not stockpiles.
+- One owner-identified settlement marker on accessible land, favoring diverse nearby biomes.
+- Seed regeneration, pixel placeholders, camera controls and tile inspection.
+
+## Generation
+
+Three seeded FastNoiseLite fields supply elevation, moisture and temperature. An elliptical falloff creates an ocean around a connected-looking continent; latitude cools northern and southern regions. Boundary-connected low tiles become sea via flood fill, while enclosed low water stays lake. A few inland basin patches improve lake visibility. Rivers follow strictly lower cardinal neighbors from high ground; local sinks become small terminal lakes. This deliberately simple hydrology can produce short rivers and is not erosion simulation.
+
+Elevation first selects water and mountains; temperature, coast elevation and moisture select the remaining biomes. Plains favor Food, forests Wood, mountains Stone/Iron, desert deposits Oil, and fresh water Water/Food. Seeded variations keep resources uneven. Sea does not provide freshwater. No single tile has all six resources; starting surroundings are not guaranteed balanced.
+
+## Validation
+
+```powershell
+New-Item -ItemType Directory -Force logs
+godot_console --headless --path . --editor --quit --log-file logs/import.log
+godot_console --headless --path . --script tests/smoke.gd --log-file logs/test.log
+godot_console --path . --script tests/smoke.gd --log-file logs/visual.log -- --visual
+```
+
+Smoke checks cover six seeds, required biome presence, determinism, legal spawn, resource bounds, scene startup, inspection, regeneration and camera input. The visual run writes `logs/preview.png`. Assertions require an editor/debug engine build. See `docs/ARCHITECTURE.md` for extension points and limitations.
+
+## Roadmap
+
+1. Territory claiming and a small farm/lumber camp loop reading the existing resource model.
+2. Save/load with a generation version and explicit world snapshot.
+3. Roads, transportation and local production/consumption.
+4. Fog of war and diplomacy.
+5. Server-authoritative multiplayer for 4-12 players, after command validation and simulation ticks exist.
