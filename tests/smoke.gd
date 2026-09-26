@@ -36,7 +36,7 @@ func run() -> void:
 	assert(scene.renderer.ground.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST)
 	assert(scene.renderer.ground.material == null)
 	scene.inspect(Vector2i(0, 0))
-	assert(scene.information.text.contains("Biome: Sea"))
+	assert(scene.information.text.contains("More"))
 	scene.regenerate(42)
 	assert(scene.world.world_seed == 42)
 	assert(scene.selected == scene.world.settlements[0].cell)

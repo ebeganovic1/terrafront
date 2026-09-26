@@ -24,7 +24,7 @@ Production uses 5-second fixed simulation steps, driven by an accumulator in `ma
 
 `strategy_camera.gd` uses left/right/middle dragging with a six-pixel threshold, release-based short clicks, focus-loss cancellation and cursor-centered zoom (0.08-2.5). UI-consumed presses cannot start map gestures; captured gestures release correctly over UI.
 
-`main.gd` composes the world, simulation, camera and views. The sidebar is scrollable, keeps real stocks distinct from tile potential, and contains market controls. The anchored bottom bar selects actions and shows a quote plus Confirm. The top bar offers pause, speed, map/home and a confirmation-protected world reset. Generation remains synchronous (~2.3 seconds on the development machine). No simulation work occurs while paused, but UI/camera remain active.
+`main.gd` composes the world, simulation, camera and `scripts/ui/game_hud.gd`. The HUD emits intents (action, confirm, trade, pause, speed, navigation and new-world); the controller applies gameplay rules and supplies refreshed state. A compact dark top strip holds real stocks and last-tick deltas. The bottom dock has four permanent actions; construction, market, selection and settings are contextual panels. Costs and confirmation appear only during a planned action. Long details live in tooltips, and toast messages expire after five seconds even while paused. Labels are Bosnian without changing model IDs. `hud_icons.gd` creates and caches original SVG interface icons; no external assets are used. Terrain artwork is unaffected. Generation remains synchronous (~2.3 seconds on the development machine). Pausing or the reset confirmation dialog stops simulation; camera/UI remain active.
 
 ## Future multiplayer and persistence
 
@@ -35,3 +35,5 @@ Route the current owner/action/cell API through a server command queue when netw
 `tests/smoke.gd`: six deterministic worlds, valid resources/spawn, complete non-looping sea-connected rivers, nearest rendering setup and click/drag/focus/zoom behavior.
 
 `tests/economy.gd`: controlled terrain fixtures, rejection without spending, exact claim/build charges, duplicates, terrain/owner/workforce checks, all seven building tick balances, shortages/recovery, no negative inventories, market spread, and live scene confirmation/pause/speed/expansion. Visual mode captures full and smaller-window layouts. Tests are representative, not exhaustive fairness certification.
+
+`tests/hud.gd`: actual control signals for every build action, no spending on selection, exclusive popup opening, localized dropdown-to-resource mapping, exact market transactions, Escape, pause/speed and toast expiry. Visual runs assert viewport containment at the minimum window size and capture the clean dock, build palette and market.

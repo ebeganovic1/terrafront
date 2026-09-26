@@ -9,13 +9,15 @@ Import `project.godot` in Godot 4 stable and press F5, or run `godot --path .` i
 ## First five minutes
 
 1. The green tint and border mark your territory. Drag with any mouse button to pan; scroll to zoom.
-2. Click an owned tile, choose **Well**, check the cost and output, then **Confirm**. Use a tile with water potential or next to a lake/river.
-3. Build a **Farm** on owned plains. A well and farm establish food/water supply.
-4. Choose **Expand**, click unclaimed land directly touching your border, inspect the gold preview and price, then **Confirm**. Water cannot be claimed or crossed.
+2. Open **Gradnja**, choose **Bunar**, click owned land, check the compact cost strip, then **Izgradi**. Use a tile with water potential or next to a lake/river.
+3. Build a **Farma** on owned plains. A well and farm establish food/water supply.
+4. Choose **Širenje**, click unclaimed land directly touching your border, inspect the gold preview and price, then **Proširi**. Water cannot be claimed or crossed.
 5. Expand toward forests and mountains. Build a lumber camp for wood, a quarry for stone and an iron mine for iron.
-6. Use the sidebar market to buy/sell batches of 10. Housing adds population/workers and taxes, but increases food/water demand.
+6. Open **Trgovina** to buy/sell batches of 10. Housing (**Kuće**) adds population/workers and taxes, but increases food/water demand.
 
-Every claim or building requires explicit confirmation; dragging never spends resources. Terrain potential is not your inventory: actual stocks are in **Treasury & Stores**. The right-hand change column shows the most recent tick's net change, not a forecast.
+Every claim or building requires explicit confirmation; dragging never spends resources. Actual stockpiles are always visible in the compact top resource strip. Small green/red numbers show the most recent tick's net change, not a forecast. Tile potential appears only on selection and in tooltips, not as stored resources.
+
+The dark, map-first HUD has four permanent bottom actions: **Pregled**, **Širenje**, **Gradnja**, **Trgovina**. Buildings, trading and settings open only when requested. The small selection card can be closed; detailed costs, terrain requirements, upkeep and population rules live in tooltips. Short notifications disappear after five seconds. UI labels are in Bosnian; the internal resource and action IDs remain English.
 
 ## Controls and interface
 
@@ -24,14 +26,14 @@ Every claim or building requires explicit confirmation; dragging never spends re
 | Hold left/right/middle mouse + drag | Pan camera |
 | Mouse wheel | Zoom |
 | Short left click | Select tile, preview chosen action |
-| Bottom action bar + Confirm | Claim or construct |
-| Escape | Return to Inspect mode |
-| Home / Home button | Center starting settlement |
-| Map | View the whole continent |
-| Pause / Resume | Stop / resume simulation, camera stays usable |
-| 1x / 2x | Change simulation speed |
-| New + seed | Reset world after confirmation |
-| Help / costs, or hover a building button | Rules and prices |
+| Bottom actions + Izgradi / Proširi | Claim or construct |
+| Escape | Close panels and return to Pregled mode |
+| Home / … > Moje naselje | Center starting settlement |
+| … > Cijela mapa | View the whole continent |
+| II / play button | Stop / resume simulation, camera stays usable |
+| 1× / 2× | Change simulation speed |
+| … > Nova partija + seed | Reset world after confirmation |
+| … > Kako igrati, or hover a button | Rules and prices |
 
 ## Economy
 
@@ -46,7 +48,7 @@ A simulation tick is 5 seconds at 1x. A supplied starting settlement earns $15 a
 - Connected initial territory, paid boundary expansion with preview, tint and outline.
 - Farm, lumber camp, quarry, iron mine, well, housing and oil pump.
 - Stockpiles, taxes, upkeep, production, population, workforce and fixed-price market.
-- Pause, 2x speed, responsive scrollable sidebar and bottom action bar.
+- Pause, 2x speed, compact resource strip, four-action bottom dock and contextual panels.
 - Independent world state, simulation rules and presentation; owner/entity IDs are retained for future multiplayer.
 
 ## Generation
@@ -59,9 +61,10 @@ Elevation, moisture and temperature noise plus continental falloff produce the b
 godot_console --headless --path . --editor --quit
 godot_console --headless --path . --script tests/smoke.gd
 godot_console --headless --path . --script tests/economy.gd
+godot_console --headless --path . --script tests/hud.gd
 ```
 
-Add `-- --visual` to a non-headless test run to save screenshots in `logs/` (create that folder first). Smoke tests cover six seeds, determinism, resources, river connectivity, spawn, rendering setup and camera input. Economy tests check rejected operations, exact spending, every building's output/upkeep, workforce, shortages/recovery, trade, confirmation, pause and speed. `.godot/` and `logs/` are ignored by Git; Godot UID files are tracked.
+Add `-- --visual` to a non-headless test run to save screenshots in `logs/` (create that folder first). Smoke tests cover six seeds, determinism, resources, river connectivity, spawn, rendering setup and camera input. Economy tests check rejected operations, exact spending, every building's output/upkeep, workforce, shortages/recovery, trade, confirmation, pause and speed. HUD tests exercise actual button signals, all building bindings, popup visibility, translated resource selection, market charges, Escape, toast expiry and smaller-window bounds. `.godot/` and `logs/` are ignored by Git; Godot UID files are tracked.
 
 ## Prototype limits and next steps
 
