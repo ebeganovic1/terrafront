@@ -4,7 +4,7 @@ const WIDTH := 160
 const HEIGHT := 112
 const TILE_SIZE := 48
 const BIOMES := ["Sea", "Lake", "River", "Coast", "Plains", "Forest", "Mountain", "Desert", "Swamp", "Snow"]
-const COLORS := [Color("245d78"), Color("438eaa"), Color("63b3c4"), Color("d6d0ac"), Color("a5b986"), Color("648970"), Color("919b96"), Color("d9bf8c"), Color("80a395"), Color("e1ebe8")]
+const COLORS := [Color("7296ad"), Color("82a9b9"), Color("82a9b9"), Color("d4d5b8"), Color("b7c8a6"), Color("98b18d"), Color("a9b0a8"), Color("d6caaa"), Color("a2b9a1"), Color("e2e7de")]
 const RESOURCE_NAMES := ["Food", "Wood", "Stone", "Iron", "Oil", "Water"]
 var world_seed: int
 var tiles: Array[Dictionary] = []

@@ -26,12 +26,14 @@ The Godot editor includes a GDScript editor. Git is initialized locally. Generat
 
 ## Implemented
 
-- 160 x 112 logical grid, 48-pixel tiles; smooth shaded terrain and cached detailed vegetation/mountain drawing, no per-tile nodes.
+- 160 x 112 logical grid, 48-pixel tiles; clean terrain-color regions with subtle elevation shading, no per-tile nodes or decorative terrain icons.
 - Sea, inland lakes, descending rivers, coast, plains, forest, mountain, desert, swamp and snow.
 - Elevation, moisture, temperature and terrain access in an independent world model.
 - Food, Wood, Stone, Iron, Oil, Water potential from 0 to 5; values are not stockpiles.
 - One owner-identified settlement marker on accessible land, favoring diverse nearby biomes.
-- Seed regeneration, natural colors, antialiased placeholder details, light interface, mouse camera controls and tile inspection. WASD is no longer used.
+- Seed regeneration, muted cartographic colors, light interface, mouse camera controls and tile inspection. Forests use a darker green and mountains a muted gray; no tree, peak, grass, dune or wave symbols are drawn. Only the settlement marker and tile selection overlay remain. WASD is no longer used.
+
+The map presentation takes inspiration from OpenFront's readable terrain-color approach, using original rendering and palette. Mountain Stone/Iron values remain available in the inspector; mining is not implemented yet.
 
 ## Generation
 
