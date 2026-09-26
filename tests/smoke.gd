@@ -87,7 +87,7 @@ func run() -> void:
 	scene.camera._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
 	assert(scene.camera.drag_button == 0)
 	scene.show_overview()
-	assert(scene.camera.zoom.x >= 0.12)
+	assert(scene.camera.zoom.x >= 0.08)
 	scene.regenerate(260926)
 	if "--visual" in OS.get_cmdline_user_args():
 		await process_frame

@@ -55,7 +55,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		multiplier = 1.0 / 1.15
 	if multiplier != 1.0:
 		var before := get_global_mouse_position()
-		zoom = Vector2.ONE * clampf(zoom.x * multiplier, 0.12, 2.5)
+		zoom = Vector2.ONE * clampf(zoom.x * multiplier, 0.08, 2.5)
 		force_update_scroll()
 		position += before - get_global_mouse_position()
 		constrain()

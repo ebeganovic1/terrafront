@@ -11,6 +11,11 @@ var world_seed: int
 var tiles: Array[Dictionary] = []
 var settlements: Array[Dictionary] = []
 var river_paths: Array = []
+var players: Dictionary = {}
+var ownership: Dictionary = {}
+var buildings: Array[Dictionary] = []
+var next_entity_id := 2
+var tick := 0
 
 func index(cell: Vector2i) -> int:
 	return cell.y * WIDTH + cell.x

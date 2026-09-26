@@ -1,63 +1,70 @@
 # TERRAFRONT
 
-Single-player Godot 4 prototype of a future 2D multiplayer strategy game: geography determines the economy. Explore a procedural continent and inspect its resource potential. This prototype has no economy simulation, units, construction, combat or networking.
+A single-player strategy prototype in Godot: geography determines your economy. Claim connected territory, build on suitable biomes, manage money and six resources, and trade to cover shortages. Terrain is a crisp 480 x 336 grid without decorative tree or mountain icons.
 
 ## Run
 
-Requires Godot 4.3+ stable (validated with 4.7.2), standard version; no .NET or external dependencies. Import `project.godot` in Godot and press F6 on the main scene or F5 for the project. Alternatively, open a new terminal in this directory and run:
+Import `project.godot` in Godot 4 stable and press F5, or run `godot --path .` in this directory. Validated with Godot 4.7.2 (standard, no .NET). No external dependencies. The included GDScript editor is sufficient.
 
-```powershell
-godot --path .
-```
+## First five minutes
 
-The Godot editor includes a GDScript editor. Git is initialized locally. Generated `.godot` cache and `logs` are ignored; `.gd.uid` files should be tracked.
+1. The green tint and border mark your territory. Drag with any mouse button to pan; scroll to zoom.
+2. Click an owned tile, choose **Well**, check the cost and output, then **Confirm**. Use a tile with water potential or next to a lake/river.
+3. Build a **Farm** on owned plains. A well and farm establish food/water supply.
+4. Choose **Expand**, click unclaimed land directly touching your border, inspect the gold preview and price, then **Confirm**. Water cannot be claimed or crossed.
+5. Expand toward forests and mountains. Build a lumber camp for wood, a quarry for stone and an iron mine for iron.
+6. Use the sidebar market to buy/sell batches of 10. Housing adds population/workers and taxes, but increases food/water demand.
 
-## Controls
+Every claim or building requires explicit confirmation; dragging never spends resources. Terrain potential is not your inventory: actual stocks are in **Treasury & Stores**. The right-hand change column shows the most recent tick's net change, not a forecast.
+
+## Controls and interface
 
 | Input | Action |
 | --- | --- |
-| Hold left/right/middle mouse + drag | Move camera |
-| Mouse wheel | Zoom around cursor |
-| Middle mouse drag | Pan |
-| Short left click | Inspect tile (dragging does not select) |
-| Home / return button | Center settlement |
-| Seed + Generate continent | Rebuild deterministic world |
-| View entire continent | Fit the map next to the inspector |
+| Hold left/right/middle mouse + drag | Pan camera |
+| Mouse wheel | Zoom |
+| Short left click | Select tile, preview chosen action |
+| Bottom action bar + Confirm | Claim or construct |
+| Escape | Return to Inspect mode |
+| Home / Home button | Center starting settlement |
+| Map | View the whole continent |
+| Pause / Resume | Stop / resume simulation, camera stays usable |
+| 1x / 2x | Change simulation speed |
+| New + seed | Reset world after confirmation |
+| Help / costs, or hover a building button | Rules and prices |
+
+## Economy
+
+Start: $350, Food 60, Wood 80, Stone 60, Iron 0, Oil 0, Water 50; population/workforce 12.
+
+A simulation tick is 5 seconds at 1x. A supplied starting settlement earns $15 and consumes 2 Food + 2 Water per tick. Production depends on the selected tile's resource potential, while upkeep and construction costs depend on building type. Buildings stop automatically if their full upkeep cannot be paid and resume when supplies recover. No stock goes negative. See **[docs/BALANCE.md](docs/BALANCE.md)** for all prices and formulas.
 
 ## Implemented
 
-- 480 x 336 logical grid (161,280 cells), 16-pixel tiles; nine times the previous terrain samples in the same 7,680 x 5,376 world area. Crisp nearest-neighbor colors, no smoothing shader, per-tile nodes or decorative terrain icons.
-- Sea, inland lakes, ocean-connected rivers, coast, plains, forest, mountain, desert, swamp and snow.
-- Elevation, moisture, temperature and terrain access in an independent world model.
-- Food, Wood, Stone, Iron, Oil, Water potential from 0 to 5; values are not stockpiles.
-- One owner-identified settlement marker on accessible land, favoring diverse nearby biomes.
-- Seed regeneration, muted cartographic colors, light interface, mouse camera controls and tile inspection. Forests use a darker green and mountains a muted gray; no tree, peak, grass, dune or wave symbols are drawn. Only the settlement marker and tile selection overlay remain. WASD is no longer used.
-
-The map presentation takes inspiration from OpenFront's readable terrain-color approach, using original rendering and palette. Mountain Stone/Iron values remain available in the inspector; mining is not implemented yet.
+- Seeded continent, sea, lakes, nine candidate rivers routed to the sea, ten biome types and resource potential.
+- 161,280 logical cells and sharp nearest filtering; no blur shader or per-tile nodes.
+- Connected initial territory, paid boundary expansion with preview, tint and outline.
+- Farm, lumber camp, quarry, iron mine, well, housing and oil pump.
+- Stockpiles, taxes, upkeep, production, population, workforce and fixed-price market.
+- Pause, 2x speed, responsive scrollable sidebar and bottom action bar.
+- Independent world state, simulation rules and presentation; owner/entity IDs are retained for future multiplayer.
 
 ## Generation
 
-`WorldData.DETAIL_SCALE` increases sampling density threefold in each direction. Noise frequencies, lake dimensions, river-source spacing and settlement search distances scale with it, keeping continent-scale features comparable while making coastlines and biome boundaries finer. Lake outlines use coherent noise instead of independent random edge pixels. Rivers remain one fine cell wide. Generation is synchronous and takes about 2.3 seconds on the development machine; extreme zoom still reveals the underlying grid.
-
-Three seeded FastNoiseLite fields supply elevation, moisture and temperature. An elliptical falloff creates an ocean around a connected-looking continent; latitude cools northern and southern regions. Boundary-connected low tiles become sea via flood fill, while enclosed low water stays lake. A few inland basin patches improve lake visibility. A priority flood starting at the sea computes an acyclic drainage route for every land tile. Up to nine spaced highland sources follow these routes all the way to the sea, merging naturally and continuing through lakes. Routing virtually fills local depressions; it does not change the displayed terrain elevation or simulate erosion, so a route can cross an original local rise. Every recorded river ends at a sea tile.
-
-Elevation first selects water and mountains; temperature, coast elevation and moisture select the remaining biomes. Plains favor Food, forests Wood, mountains Stone/Iron, desert deposits Oil, and fresh water Water/Food. Seeded variations keep resources uneven. Sea does not provide freshwater. No single tile has all six resources; starting surroundings are not guaranteed balanced.
+Elevation, moisture and temperature noise plus continental falloff produce the biomes. Sampling is three times finer per axis than the original prototype, preserving a 7,680 x 5,376 world area. Priority-flood drainage computes complete river routes to the sea, including through lakes. Depression filling is virtual, not physical erosion. Source spacing, lake sizes and spawn search scale with resolution. Generation takes approximately 2.3 seconds on the development machine and remains synchronous.
 
 ## Validation
 
 ```powershell
-New-Item -ItemType Directory -Force logs
-godot_console --headless --path . --editor --quit --log-file logs/import.log
-godot_console --headless --path . --script tests/smoke.gd --log-file logs/test.log
-godot_console --path . --script tests/smoke.gd --log-file logs/visual.log -- --visual
+godot_console --headless --path . --editor --quit
+godot_console --headless --path . --script tests/smoke.gd
+godot_console --headless --path . --script tests/economy.gd
 ```
 
-Smoke checks cover six seeds, required biome presence, deterministic tiles and river paths, legal spawn, resource bounds, river continuity and sea outlets, scene startup, inspection, regeneration, zoom, all three drag buttons, click/drag separation, release over UI and focus loss. The visual run writes `logs/preview.png` and `logs/overview.png`. Assertions require an editor/debug engine build. See `docs/ARCHITECTURE.md` for extension points and limitations.
+Add `-- --visual` to a non-headless test run to save screenshots in `logs/` (create that folder first). Smoke tests cover six seeds, determinism, resources, river connectivity, spawn, rendering setup and camera input. Economy tests check rejected operations, exact spending, every building's output/upkeep, workforce, shortages/recovery, trade, confirmation, pause and speed. `.godot/` and `logs/` are ignored by Git; Godot UID files are tracked.
 
-## Roadmap
+## Prototype limits and next steps
 
-1. Territory claiming and a small farm/lumber camp loop reading the existing resource model.
-2. Save/load with a generation version and explicit world snapshot.
-3. Roads, transportation and local production/consumption.
-4. Fog of war and diplomacy.
-5. Server-authoritative multiplayer for 4-12 players, after command validation and simulation ticks exist.
+No save/load yet: closing the game or confirming New loses the current session. No demolition, construction timers, roads, transport, combat, competing players or networking. Stocks are global per player, deposits do not deplete, buildings complete immediately, market supply is unlimited and workers are allocated automatically. Mountains can be claimed and mined even though the future unit traversal flag marks them impassable. Water currently blocks expansion; bridges and shipping are future work. This is a first playable balance, not a tuned 30-60 minute match.
+
+Next: save/load, building management, then roads and resource transport before multiplayer.
