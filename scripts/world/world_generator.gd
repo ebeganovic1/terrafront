@@ -7,7 +7,7 @@ const Drainage = preload("res://scripts/world/drainage.gd")
 func noise(seed_value: int, frequency: float) -> FastNoiseLite:
 	var field := FastNoiseLite.new()
 	field.seed = seed_value
-	field.frequency = frequency
+	field.frequency = frequency / World.DETAIL_SCALE
 	field.fractal_octaves = 4
 	return field
 
@@ -72,24 +72,26 @@ func add_lakes(world: RefCounted, seed_value: int) -> void:
 	for attempt in 500:
 		if centers.size() >= 5:
 			break
-		var center := Vector2i(rng.randi_range(25, World.WIDTH - 26), rng.randi_range(20, World.HEIGHT - 21))
+		var center := Vector2i(rng.randi_range(25 * World.DETAIL_SCALE, World.WIDTH - 26 * World.DETAIL_SCALE), rng.randi_range(20 * World.DETAIL_SCALE, World.HEIGHT - 21 * World.DETAIL_SCALE))
 		if not world.walkable(center):
 			continue
 		var valid := true
 		for previous in centers:
-			if Vector2(center - previous).length() < 15:
+			if Vector2(center - previous).length() < 15 * World.DETAIL_SCALE:
 				valid = false
-		for vertical in range(-5, 6):
-			for horizontal in range(-5, 6):
+		for vertical in range(-5 * World.DETAIL_SCALE, 5 * World.DETAIL_SCALE + 1):
+			for horizontal in range(-5 * World.DETAIL_SCALE, 5 * World.DETAIL_SCALE + 1):
 				if world.tile(center + Vector2i(horizontal, vertical)).biome in [0, 1, 6]:
 					valid = false
 		if not valid:
 			continue
 		centers.append(center)
 		var surface: float = world.tile(center).elevation - 0.03
-		for vertical in range(-3, 4):
-			for horizontal in range(-4, 5):
-				if pow(float(horizontal) / 4.0, 2) + pow(float(vertical) / 3.0, 2) < rng.randf_range(0.7, 1.1):
+		var shoreline := noise(seed_value + 503 + centers.size(), 0.35)
+		for vertical in range(-3 * World.DETAIL_SCALE, 3 * World.DETAIL_SCALE + 1):
+			for horizontal in range(-4 * World.DETAIL_SCALE, 4 * World.DETAIL_SCALE + 1):
+				var contour := 0.9 + shoreline.get_noise_2d(center.x + horizontal, center.y + vertical) * 0.2
+				if pow(float(horizontal) / (4.0 * World.DETAIL_SCALE), 2) + pow(float(vertical) / (3.0 * World.DETAIL_SCALE), 2) < contour:
 					var lake: Dictionary = world.tile(center + Vector2i(horizontal, vertical))
 					lake.biome = 1
 					lake.elevation = surface
@@ -101,12 +103,12 @@ func add_rivers(world: RefCounted, seed_value: int) -> void:
 	for attempt in 1500:
 		if world.river_paths.size() >= 9:
 			break
-		var cell := Vector2i(rng.randi_range(10, World.WIDTH - 11), rng.randi_range(10, World.HEIGHT - 11))
+		var cell := Vector2i(rng.randi_range(10 * World.DETAIL_SCALE, World.WIDTH - 11 * World.DETAIL_SCALE), rng.randi_range(10 * World.DETAIL_SCALE, World.HEIGHT - 11 * World.DETAIL_SCALE))
 		if world.tile(cell).elevation < 0.69 or world.tile(cell).biome in [0, 1, 2]:
 			continue
 		var near_source := false
 		for existing in world.river_paths:
-			if Vector2(cell - existing[0]).length() < 12:
+			if Vector2(cell - existing[0]).length() < 12 * World.DETAIL_SCALE:
 				near_source = true
 		if near_source:
 			continue
@@ -121,7 +123,7 @@ func add_rivers(world: RefCounted, seed_value: int) -> void:
 			var next_index: int = downstream[world.index(cell)]
 			assert(next_index >= 0, "Land must have an ocean drainage route")
 			cell = Vector2i(next_index % World.WIDTH, int(next_index / World.WIDTH))
-		if new_land < 12 or world.tile(path.back()).biome != 0:
+		if new_land < 12 * World.DETAIL_SCALE or world.tile(path.back()).biome != 0:
 			continue
 		for river_cell in path:
 			if world.tile(river_cell).biome >= 3:
@@ -131,16 +133,16 @@ func add_rivers(world: RefCounted, seed_value: int) -> void:
 func place_settlement(world: RefCounted) -> void:
 	var best := Vector2i(-1, -1)
 	var best_score := -1.0
-	for row in range(4, World.HEIGHT - 4):
-		for column in range(4, World.WIDTH - 4):
+	for row in range(4 * World.DETAIL_SCALE, World.HEIGHT - 4 * World.DETAIL_SCALE, World.DETAIL_SCALE):
+		for column in range(4 * World.DETAIL_SCALE, World.WIDTH - 4 * World.DETAIL_SCALE, World.DETAIL_SCALE):
 			var cell := Vector2i(column, row)
 			if world.tile(cell).biome != 4:
 				continue
 			var types := {}
-			for vertical in range(-3, 4):
-				for horizontal in range(-3, 4):
+			for vertical in range(-3 * World.DETAIL_SCALE, 3 * World.DETAIL_SCALE + 1, World.DETAIL_SCALE):
+				for horizontal in range(-3 * World.DETAIL_SCALE, 3 * World.DETAIL_SCALE + 1, World.DETAIL_SCALE):
 					types[world.tile(cell + Vector2i(horizontal, vertical)).biome] = true
-			var score := float(types.size()) - Vector2(cell - Vector2i(80, 56)).length() * 0.005
+			var score := float(types.size()) - Vector2(cell - Vector2i(World.WIDTH / 2, World.HEIGHT / 2)).length() * 0.005 / World.DETAIL_SCALE
 			if score > best_score:
 				best_score = score
 				best = cell

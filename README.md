@@ -26,7 +26,7 @@ The Godot editor includes a GDScript editor. Git is initialized locally. Generat
 
 ## Implemented
 
-- 160 x 112 logical grid, 48-pixel tiles; crisp nearest-neighbor terrain colors with subtle elevation shading, no smoothing shader, per-tile nodes or decorative terrain icons.
+- 480 x 336 logical grid (161,280 cells), 16-pixel tiles; nine times the previous terrain samples in the same 7,680 x 5,376 world area. Crisp nearest-neighbor colors, no smoothing shader, per-tile nodes or decorative terrain icons.
 - Sea, inland lakes, ocean-connected rivers, coast, plains, forest, mountain, desert, swamp and snow.
 - Elevation, moisture, temperature and terrain access in an independent world model.
 - Food, Wood, Stone, Iron, Oil, Water potential from 0 to 5; values are not stockpiles.
@@ -36,6 +36,8 @@ The Godot editor includes a GDScript editor. Git is initialized locally. Generat
 The map presentation takes inspiration from OpenFront's readable terrain-color approach, using original rendering and palette. Mountain Stone/Iron values remain available in the inspector; mining is not implemented yet.
 
 ## Generation
+
+`WorldData.DETAIL_SCALE` increases sampling density threefold in each direction. Noise frequencies, lake dimensions, river-source spacing and settlement search distances scale with it, keeping continent-scale features comparable while making coastlines and biome boundaries finer. Lake outlines use coherent noise instead of independent random edge pixels. Rivers remain one fine cell wide. Generation is synchronous and takes about 2.3 seconds on the development machine; extreme zoom still reveals the underlying grid.
 
 Three seeded FastNoiseLite fields supply elevation, moisture and temperature. An elliptical falloff creates an ocean around a connected-looking continent; latitude cools northern and southern regions. Boundary-connected low tiles become sea via flood fill, while enclosed low water stays lake. A few inland basin patches improve lake visibility. A priority flood starting at the sea computes an acyclic drainage route for every land tile. Up to nine spaced highland sources follow these routes all the way to the sea, merging naturally and continuing through lakes. Routing virtually fills local depressions; it does not change the displayed terrain elevation or simulate erosion, so a route can cross an original local rise. Every recorded river ends at a sea tile.
 

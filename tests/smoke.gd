@@ -8,7 +8,9 @@ func _initialize() -> void:
 
 func run() -> void:
 	for seed_value in [260926, 1, 42, 100, -17, 9999]:
+		var started := Time.get_ticks_msec()
 		var world := Generator.new().generate(seed_value)
+		print("Generated ", World.WIDTH, "x", World.HEIGHT, " in ", Time.get_ticks_msec() - started, " ms")
 		assert(world.tiles.size() == World.WIDTH * World.HEIGHT)
 		assert(world.walkable(world.settlements[0].cell))
 		validate_rivers(world)
@@ -29,6 +31,10 @@ func run() -> void:
 	var scene = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
 	await process_frame
+	assert(scene.renderer.ground.texture.get_width() == World.WIDTH)
+	assert(scene.renderer.ground.texture.get_height() == World.HEIGHT)
+	assert(scene.renderer.ground.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST)
+	assert(scene.renderer.ground.material == null)
 	scene.inspect(Vector2i(0, 0))
 	assert(scene.information.text.contains("Biome: Sea"))
 	scene.regenerate(42)

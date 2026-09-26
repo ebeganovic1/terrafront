@@ -105,7 +105,7 @@ func regenerate(seed_value: int) -> void:
 	world = Generator.new().generate(seed_value)
 	camera.cancel_drag()
 	renderer.set_world(world)
-	status.text = "SEED %d  /  160 x 112 TILES" % seed_value
+	status.text = "SEED %d  /  %d x %d TILES" % [seed_value, World.WIDTH, World.HEIGHT]
 	camera.zoom = Vector2.ONE * 0.55
 	focus_settlement()
 	inspect(world.settlements[0].cell)

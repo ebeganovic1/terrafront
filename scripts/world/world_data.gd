@@ -1,8 +1,9 @@
 extends RefCounted
 
-const WIDTH := 160
-const HEIGHT := 112
-const TILE_SIZE := 48
+const DETAIL_SCALE := 3
+const WIDTH := 160 * DETAIL_SCALE
+const HEIGHT := 112 * DETAIL_SCALE
+const TILE_SIZE := 16
 const BIOMES := ["Sea", "Lake", "River", "Coast", "Plains", "Forest", "Mountain", "Desert", "Swamp", "Snow"]
 const COLORS := [Color("7296ad"), Color("82a9b9"), Color("82a9b9"), Color("d4d5b8"), Color("b7c8a6"), Color("98b18d"), Color("a9b0a8"), Color("d6caaa"), Color("a2b9a1"), Color("e2e7de")]
 const RESOURCE_NAMES := ["Food", "Wood", "Stone", "Iron", "Oil", "Water"]
