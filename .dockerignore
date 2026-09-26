@@ -1,0 +1,11 @@
+.git
+.godot
+builds
+logs
+docs
+tests
+tools
+*.md
+Dockerfile
+.dockerignore
+docker-compose.yml

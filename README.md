@@ -8,6 +8,48 @@ Double-click **TERRAFRONT** on the Windows desktop. The shortcut uses the instal
 
 Import project.godot in Godot 4 stable and press F5, or run godot --path . in this directory. Validated with Godot 4.7.2 standard. No external dependencies or downloaded artwork.
 
+## Web build
+
+The project exports to the browser without gameplay changes. The renderer is already
+GL Compatibility, no code uses threads, and there is no file or audio access, so the
+export is single-threaded. That means no `SharedArrayBuffer`, no cross-origin isolation
+and no COOP/COEP response headers: the result is plain static files that any host serves.
+
+With Godot 4.7.2 and the matching web export templates installed:
+
+~~~bash
+godot --headless --path . --export-release "Web" builds/web/index.html
+python3 -m http.server 8080 --directory builds/web
+~~~
+
+The first frame in a browser shows a splash while the 480x336 world generates, because
+WebAssembly runs that pass slower than native. Desktop and headless runs keep the
+original synchronous path, so the test suite is unaffected.
+
+Desktop remains the only supported target. The window minimum is 1100x850 and every
+control is mouse-button or drag based, so there is no touch or mobile support.
+
+## Docker
+
+The image builds the web export and serves it behind nginx on port 8080. It is fully
+self-contained: the build stage fetches the engine and export templates itself, so a
+clean checkout builds with no Godot installed on the host.
+
+~~~bash
+docker compose up --build
+~~~
+
+Then open http://localhost:8080. Without compose:
+
+~~~bash
+docker build -t terrafront .
+docker run --rm -p 8080:8080 terrafront
+~~~
+
+The first build downloads roughly a gigabyte of export templates and takes several
+minutes. Later builds reuse that layer. `/healthz` returns `ok` for container health
+checks.
+
 ## First match
 
 1. Green borders are yours; red borders belong to the opponent. Your first successful construction or expansion starts both players' clocks; before then, exploration does not consume supplies.

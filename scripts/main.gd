@@ -74,7 +74,34 @@ func _ready() -> void:
 	hud.equipment_requested.connect(func():
 		hud.toast("Oprema unaprijeđena · jači napad i odbrana." if war.upgrade(world, PLAYER_ID) else "Treba kasarna, novac i željezo.")
 		refresh_ui())
-	regenerate(260926)
+	if OS.has_feature("web"):
+		# WebAssembly generates the 480x336 world noticeably slower than native and
+		# blocks the canvas while it runs. Paint a splash first so the first frame
+		# is never an empty canvas. Desktop and headless keep the synchronous path
+		# the test suite relies on.
+		var boot := build_boot_overlay()
+		add_child(boot)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		regenerate(260926)
+		boot.queue_free()
+	else:
+		regenerate(260926)
+
+func build_boot_overlay() -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.layer = 128
+	var background := ColorRect.new()
+	background.color = Color(0.025, 0.045, 0.065, 1.0)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(background)
+	var label := Label.new()
+	label.text = "TERRAFRONT\n\nGeneriranje svijeta…"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.add_child(label)
+	return layer
 
 func _process(delta: float) -> void:
 	if hud != null:
