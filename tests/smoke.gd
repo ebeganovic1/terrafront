@@ -41,15 +41,53 @@ func run() -> void:
 	var focus := root.gui_get_focus_owner()
 	if focus != null:
 		focus.release_focus()
-	Input.action_press("camera_right")
 	var old_position: Vector2 = scene.camera.position
-	scene.camera._process(0.1)
-	assert(scene.camera.position.x > old_position.x)
-	Input.action_release("camera_right")
+	var original_selection: Vector2i = scene.selected
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = Vector2(700, 450)
+	scene.camera._unhandled_input(press)
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(780, 480)
+	scene.camera._input(motion)
+	assert(scene.camera.position.x < old_position.x)
+	assert(scene.camera.dragging)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.position = motion.position
+	scene.camera._input(release)
+	assert(scene.camera.drag_button == 0)
+	assert(scene.selected == original_selection, "Dragging must not select a tile")
+	scene.camera._unhandled_input(press)
+	release.position = press.position
+	scene.camera.force_update_scroll()
+	var clicked_world: Vector2 = scene.camera.get_canvas_transform().affine_inverse() * release.position
+	var expected_cell := Vector2i((clicked_world / World.TILE_SIZE).floor())
+	scene.camera._input(release)
+	assert(scene.selected == expected_cell, "Short click must inspect the target tile")
+	for button in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+		press.button_index = button
+		scene.camera._unhandled_input(press)
+		scene.camera._input(motion)
+		release.button_index = button
+		release.position = Vector2(50, 100)
+		scene.camera._input(release)
+		assert(scene.camera.drag_button == 0, "Release over UI must end dragging")
+	press.button_index = MOUSE_BUTTON_LEFT
+	scene.camera._unhandled_input(press)
+	scene.camera._notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT)
+	assert(scene.camera.drag_button == 0)
+	scene.show_overview()
+	assert(scene.camera.zoom.x >= 0.12)
 	scene.regenerate(260926)
 	if "--visual" in OS.get_cmdline_user_args():
 		await process_frame
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("res://logs/preview.png")
-	print("PASS scene, inspection, regeneration, zoom and movement")
+		scene.show_overview()
+		await process_frame
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://logs/overview.png")
+	print("PASS scene, click/drag separation, all mouse buttons, focus loss, zoom and overview")
 	quit()

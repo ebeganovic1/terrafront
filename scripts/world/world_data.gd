@@ -2,9 +2,9 @@ extends RefCounted
 
 const WIDTH := 160
 const HEIGHT := 112
-const TILE_SIZE := 16
+const TILE_SIZE := 48
 const BIOMES := ["Sea", "Lake", "River", "Coast", "Plains", "Forest", "Mountain", "Desert", "Swamp", "Snow"]
-const COLORS := [Color("183d59"), Color("327f9e"), Color("52afbf"), Color("c4b784"), Color("80935c"), Color("355f4a"), Color("7c8182"), Color("d0ac6b"), Color("546f62"), Color("c4d6d5")]
+const COLORS := [Color("245d78"), Color("438eaa"), Color("63b3c4"), Color("d6d0ac"), Color("a5b986"), Color("648970"), Color("919b96"), Color("d9bf8c"), Color("80a395"), Color("e1ebe8")]
 const RESOURCE_NAMES := ["Food", "Wood", "Stone", "Iron", "Oil", "Water"]
 var world_seed: int
 var tiles: Array[Dictionary] = []

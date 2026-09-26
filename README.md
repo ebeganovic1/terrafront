@@ -16,21 +16,22 @@ The Godot editor includes a GDScript editor. Git is initialized locally. Generat
 
 | Input | Action |
 | --- | --- |
-| WASD | Move camera |
+| Hold left/right/middle mouse + drag | Move camera |
 | Mouse wheel | Zoom around cursor |
 | Middle mouse drag | Pan |
-| Left click | Inspect tile |
+| Short left click | Inspect tile (dragging does not select) |
 | Home / return button | Center settlement |
 | Seed + Generate continent | Rebuild deterministic world |
+| View entire continent | Fit the map next to the inspector |
 
 ## Implemented
 
-- 160 x 112 grid, 16-pixel tiles; cached Node2D tile drawing, no per-tile nodes.
+- 160 x 112 logical grid, 48-pixel tiles; smooth shaded terrain and cached detailed vegetation/mountain drawing, no per-tile nodes.
 - Sea, inland lakes, descending rivers, coast, plains, forest, mountain, desert, swamp and snow.
 - Elevation, moisture, temperature and terrain access in an independent world model.
 - Food, Wood, Stone, Iron, Oil, Water potential from 0 to 5; values are not stockpiles.
 - One owner-identified settlement marker on accessible land, favoring diverse nearby biomes.
-- Seed regeneration, pixel placeholders, camera controls and tile inspection.
+- Seed regeneration, natural colors, antialiased placeholder details, light interface, mouse camera controls and tile inspection. WASD is no longer used.
 
 ## Generation
 
@@ -47,7 +48,7 @@ godot_console --headless --path . --script tests/smoke.gd --log-file logs/test.l
 godot_console --path . --script tests/smoke.gd --log-file logs/visual.log -- --visual
 ```
 
-Smoke checks cover six seeds, required biome presence, determinism, legal spawn, resource bounds, scene startup, inspection, regeneration and camera input. The visual run writes `logs/preview.png`. Assertions require an editor/debug engine build. See `docs/ARCHITECTURE.md` for extension points and limitations.
+Smoke checks cover six seeds, required biome presence, determinism, legal spawn, resource bounds, scene startup, inspection, regeneration, zoom, all three drag buttons, click/drag separation, release over UI and focus loss. The visual run writes `logs/preview.png`. Assertions require an editor/debug engine build. See `docs/ARCHITECTURE.md` for extension points and limitations.
 
 ## Roadmap
 

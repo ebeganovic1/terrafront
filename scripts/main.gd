@@ -14,9 +14,11 @@ var status: Label
 
 func _ready() -> void:
 	renderer = Renderer.new()
+	renderer.z_index = -1
 	add_child(renderer)
 	camera = StrategyCamera.new()
 	add_child(camera)
+	camera.tile_clicked.connect(inspect_position)
 	build_ui()
 	regenerate(260926)
 
@@ -27,19 +29,42 @@ func build_ui() -> void:
 	panel.position = Vector2(20, 20)
 	panel.custom_minimum_size = Vector2(284, 0)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("14252a")
-	style.border_color = Color("45635d")
+	style.bg_color = Color("f1f5f2")
+	style.border_color = Color("d4e0db")
+	style.set_corner_radius_all(14)
+	style.shadow_color = Color(0.06, 0.16, 0.19, 0.16)
+	style.shadow_size = 12
 	style.set_border_width_all(1)
 	style.set_content_margin_all(18)
 	panel.add_theme_stylebox_override("panel", style)
+	var ui_theme := Theme.new()
+	ui_theme.default_font_size = 15
+	ui_theme.set_color("font_color", "Label", Color("29454d"))
+	ui_theme.set_color("font_color", "Button", Color("29454d"))
+	ui_theme.set_color("font_hover_color", "Button", Color("163e40"))
+	ui_theme.set_color("font_pressed_color", "Button", Color("163e40"))
+	ui_theme.set_color("font_color", "LineEdit", Color("29454d"))
+	ui_theme.set_color("caret_color", "LineEdit", Color("29454d"))
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var button_style := StyleBoxFlat.new()
+		button_style.bg_color = Color("dce8e2") if state == "normal" else Color("c4ded3")
+		button_style.set_corner_radius_all(8)
+		button_style.set_content_margin_all(10)
+		if state == "focus":
+			button_style.bg_color = Color.TRANSPARENT
+			button_style.border_color = Color("499784")
+			button_style.set_border_width_all(2)
+		ui_theme.set_stylebox(state, "Button", button_style)
+		ui_theme.set_stylebox(state, "LineEdit", button_style)
+	panel.theme = ui_theme
 	layer.add_child(panel)
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 12)
+	column.add_theme_constant_override("separation", 9)
 	panel.add_child(column)
 	var title := Label.new()
-	title.text = "T E R R A F R O N T"
-	title.add_theme_font_size_override("font_size", 23)
-	title.add_theme_color_override("font_color", Color("eace88"))
+	title.text = "Terrafront"
+	title.add_theme_font_size_override("font_size", 30)
+	title.add_theme_color_override("font_color", Color("245f59"))
 	column.add_child(title)
 	status = Label.new()
 	status.add_theme_font_size_override("font_size", 12)
@@ -62,35 +87,45 @@ func build_ui() -> void:
 	home.text = "Return to settlement [Home]"
 	home.pressed.connect(focus_settlement)
 	column.add_child(home)
+	var overview := Button.new()
+	overview.text = "View entire continent"
+	overview.pressed.connect(show_overview)
+	column.add_child(overview)
 	column.add_child(HSeparator.new())
 	information = Label.new()
 	information.add_theme_font_size_override("font_size", 15)
 	column.add_child(information)
 	column.add_child(HSeparator.new())
 	var controls := Label.new()
-	controls.text = "WASD   Move camera\nWheel   Zoom at cursor\nMiddle drag   Pan\nLeft click   Inspect tile\n\nResources: 0 none / 5 abundant\nMountain and water: inaccessible"
+	controls.text = "Hold + drag mouse to explore\nScroll to zoom / Click to inspect\nHome to return to settlement\n\nResource potential: 0 - 5"
 	controls.add_theme_font_size_override("font_size", 13)
 	column.add_child(controls)
 
 func regenerate(seed_value: int) -> void:
 	world = Generator.new().generate(seed_value)
-	renderer.world = world
-	renderer.queue_redraw()
+	camera.cancel_drag()
+	renderer.set_world(world)
 	status.text = "SEED %d  /  160 x 112 TILES" % seed_value
-	camera.zoom = Vector2.ONE * 0.85
+	camera.zoom = Vector2.ONE * 0.55
 	focus_settlement()
 	inspect(world.settlements[0].cell)
 
 func focus_settlement() -> void:
 	if world != null:
-		camera.position = Vector2(world.settlements[0].cell) * World.TILE_SIZE + Vector2(8, 8)
+		camera.position = (Vector2(world.settlements[0].cell) + Vector2.ONE * 0.5) * World.TILE_SIZE
+
+func show_overview() -> void:
+	var available := get_viewport_rect().size - Vector2(360, 60)
+	var dimensions := Vector2(World.WIDTH, World.HEIGHT) * World.TILE_SIZE
+	camera.zoom = Vector2.ONE * clampf(minf(available.x / dimensions.x, available.y / dimensions.y), 0.12, 2.5)
+	camera.position = dimensions * 0.5 - Vector2(155, 0) / camera.zoom
+
+func inspect_position(world_position: Vector2) -> void:
+	var cell := Vector2i((world_position / World.TILE_SIZE).floor())
+	if world.contains(cell):
+		inspect(cell)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var mouse := get_global_mouse_position() / World.TILE_SIZE
-		var cell := Vector2i(floori(mouse.x), floori(mouse.y))
-		if world.contains(cell):
-			inspect(cell)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_HOME:
 		focus_settlement()
 
@@ -104,4 +139,5 @@ func inspect(cell: Vector2i) -> void:
 
 func _draw() -> void:
 	if selected.x >= 0:
-		draw_rect(Rect2(Vector2(selected) * World.TILE_SIZE, Vector2.ONE * World.TILE_SIZE), Color("fff1bd"), false, 2.0)
+		draw_rect(Rect2(Vector2(selected) * World.TILE_SIZE, Vector2.ONE * World.TILE_SIZE), Color(0.9, 1, 0.97, 0.14))
+		draw_rect(Rect2(Vector2(selected) * World.TILE_SIZE, Vector2.ONE * World.TILE_SIZE), Color("e5fff4"), false, 2.0)
