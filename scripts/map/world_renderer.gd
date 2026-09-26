@@ -12,9 +12,6 @@ func set_world(value: RefCounted) -> void:
 		ground.z_index = -1
 		ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(ground)
-		var material := ShaderMaterial.new()
-		material.shader = preload("res://assets/terrain.gdshader")
-		ground.material = material
 	var colors := Image.create(World.WIDTH, World.HEIGHT, false, Image.FORMAT_RGB8)
 	for row in World.HEIGHT:
 		for column in World.WIDTH:

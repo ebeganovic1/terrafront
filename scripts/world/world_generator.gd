@@ -2,6 +2,7 @@ extends RefCounted
 
 const World = preload("res://scripts/world/world_data.gd")
 const Resources = preload("res://scripts/systems/resource_system.gd")
+const Drainage = preload("res://scripts/world/drainage.gd")
 
 func noise(seed_value: int, frequency: float) -> FastNoiseLite:
 	var field := FastNoiseLite.new()
@@ -96,34 +97,36 @@ func add_lakes(world: RefCounted, seed_value: int) -> void:
 func add_rivers(world: RefCounted, seed_value: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 607
-	var count := 0
+	var downstream := Drainage.new().build(world)
 	for attempt in 1500:
-		if count >= 9:
+		if world.river_paths.size() >= 9:
 			break
 		var cell := Vector2i(rng.randi_range(10, World.WIDTH - 11), rng.randi_range(10, World.HEIGHT - 11))
 		if world.tile(cell).elevation < 0.69 or world.tile(cell).biome in [0, 1, 2]:
 			continue
+		var near_source := false
+		for existing in world.river_paths:
+			if Vector2(cell - existing[0]).length() < 12:
+				near_source = true
+		if near_source:
+			continue
 		var path: Array[Vector2i] = []
-		for step in 220:
+		var new_land := 0
+		for step in world.tiles.size():
 			path.append(cell)
-			var next_cell := cell
-			var lowest: float = world.tile(cell).elevation
-			for neighbor in world.neighbors(cell):
-				if world.tile(neighbor).elevation < lowest:
-					lowest = world.tile(neighbor).elevation
-					next_cell = neighbor
-			if next_cell == cell:
+			if world.tile(cell).biome == 0:
 				break
-			cell = next_cell
-			if world.tile(cell).biome in [0, 1, 2]:
-				break
-		if path.size() < 7:
+			if world.tile(cell).biome >= 3:
+				new_land += 1
+			var next_index: int = downstream[world.index(cell)]
+			assert(next_index >= 0, "Land must have an ocean drainage route")
+			cell = Vector2i(next_index % World.WIDTH, int(next_index / World.WIDTH))
+		if new_land < 12 or world.tile(path.back()).biome != 0:
 			continue
 		for river_cell in path:
-			world.tile(river_cell).biome = 2
-		if cell == path.back():
-			world.tile(cell).biome = 1
-		count += 1
+			if world.tile(river_cell).biome >= 3:
+				world.tile(river_cell).biome = 2
+		world.river_paths.append(path)
 
 func place_settlement(world: RefCounted) -> void:
 	var best := Vector2i(-1, -1)

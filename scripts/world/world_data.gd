@@ -9,6 +9,7 @@ const RESOURCE_NAMES := ["Food", "Wood", "Stone", "Iron", "Oil", "Water"]
 var world_seed: int
 var tiles: Array[Dictionary] = []
 var settlements: Array[Dictionary] = []
+var river_paths: Array = []
 
 func index(cell: Vector2i) -> int:
 	return cell.y * WIDTH + cell.x

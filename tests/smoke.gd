@@ -11,6 +11,7 @@ func run() -> void:
 		var world := Generator.new().generate(seed_value)
 		assert(world.tiles.size() == World.WIDTH * World.HEIGHT)
 		assert(world.walkable(world.settlements[0].cell))
+		validate_rivers(world)
 		var counts := {}
 		for tile in world.tiles:
 			counts[tile.biome] = counts.get(tile.biome, 0) + 1
@@ -23,6 +24,7 @@ func run() -> void:
 		var repeat := Generator.new().generate(seed_value)
 		assert(world.tiles == repeat.tiles)
 		assert(world.settlements == repeat.settlements)
+		assert(world.river_paths == repeat.river_paths)
 		print("PASS seed ", seed_value, " biome counts ", counts)
 	var scene = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
@@ -91,3 +93,25 @@ func run() -> void:
 		root.get_texture().get_image().save_png("res://logs/overview.png")
 	print("PASS scene, click/drag separation, all mouse buttons, focus loss, zoom and overview")
 	quit()
+
+func validate_rivers(world: RefCounted) -> void:
+	assert(not world.river_paths.is_empty(), "Expected rivers")
+	var covered := {}
+	for path in world.river_paths:
+		assert(world.tile(path[0]).elevation >= 0.69)
+		assert(world.tile(path.back()).biome == 0, "Every river must reach the sea")
+		var visited := {}
+		for index in path.size():
+			var cell: Vector2i = path[index]
+			assert(not visited.has(cell), "River must not loop")
+			visited[cell] = true
+			covered[cell] = true
+			assert(world.tile(cell).biome in [0, 1, 2], "River must be unbroken water")
+			if index > 0:
+				var offset: Vector2i = cell - path[index - 1]
+				assert(absi(offset.x) + absi(offset.y) == 1, "River must be cardinally connected")
+	for row in World.HEIGHT:
+		for column in World.WIDTH:
+			var cell := Vector2i(column, row)
+			if world.tile(cell).biome == 2:
+				assert(covered.has(cell), "No isolated river tiles")
