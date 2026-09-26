@@ -50,6 +50,8 @@ The first build downloads roughly a gigabyte of export templates and takes sever
 minutes. Later builds reuse that layer. `/healthz` returns `ok` for container health
 checks.
 
+See docs/DEPLOY.md for putting this on a server behind nginx and a Cloudflare tunnel.
+
 ## First match
 
 1. Green borders are yours; red borders belong to the opponent. Your first successful construction or expansion starts both players' clocks; before then, exploration does not consume supplies.

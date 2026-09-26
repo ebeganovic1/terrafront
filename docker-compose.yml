@@ -6,5 +6,7 @@ services:
     image: terrafront:latest
     container_name: terrafront
     ports:
-      - "8080:8080"
+      # Bound to loopback: nginx and cloudflared sit in front of it.
+      # Use "8080:8080" instead if you want to reach it from another machine.
+      - "127.0.0.1:8080:8080"
     restart: unless-stopped
