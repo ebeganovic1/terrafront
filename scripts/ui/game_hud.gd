@@ -8,12 +8,24 @@ signal speed_requested
 signal home_requested
 signal overview_requested
 signal new_world_requested(seed_value: int)
+signal building_dropped(action: String, screen_position: Vector2)
+signal building_hovered(action: String, screen_position: Vector2)
+signal building_drag_started
+signal building_drag_ended
+signal enemy_requested
+signal attack_fraction_changed(value: float)
+signal retreat_requested
+signal training_requested
+signal radial_requested
+signal expansion_size_changed(value: int)
+signal equipment_requested
 
 const World = preload("res://scripts/world/world_data.gd")
 const Economy = preload("res://scripts/systems/economy.gd")
 const Icons = preload("res://scripts/ui/hud_icons.gd")
+const Art = preload("res://scripts/ui/building_art.gd")
 const NAMES := {"Money": "Novac", "Food": "Hrana", "Wood": "Drvo", "Stone": "Kamen", "Iron": "Željezo", "Oil": "Nafta", "Water": "Voda"}
-const ACTIONS := {"inspect": "Pregled", "expand": "Širenje", "farm": "Farma", "lumber": "Pilana", "quarry": "Kamenolom", "mine": "Rudnik", "well": "Bunar", "house": "Kuće", "oil": "Nafta"}
+const ACTIONS := {"inspect": "Naselje", "expand": "Front", "attack": "Napad", "barracks": "Kasarna", "fort": "Utvrda", "farm": "Farma", "lumber": "Pilana", "quarry": "Kamenolom", "mine": "Rudnik", "well": "Bunar", "house": "Kuće", "oil": "Nafta"}
 const BIOMES := ["More", "Jezero", "Rijeka", "Obala", "Ravnica", "Šuma", "Planine", "Pustinja", "Močvara", "Snijeg"]
 var stock_labels := {}
 var delta_labels := {}
@@ -42,163 +54,20 @@ var menu_button: Button
 var stock_bar: PanelContainer
 var dock: PanelContainer
 var toast_time := 0.0
+var cycle_bar: ProgressBar
+var cycle_label: Label
+var army_label: Label
+var objective_label: Label
+var training_button: Button
+var retreat_button: Button
+var context_button: Button
+var attack_fraction: OptionButton
+var result_dialog: AcceptDialog
+var upgrade_context := false
+var build_cost_labels := {}
 
 func _ready() -> void:
-	var root := Control.new()
-	add_child(root)
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.theme = make_theme()
-	stock_bar = panel(root, Vector4(16, 16, -190, 84), Vector4(0, 0, 1, 0))
-	var resources := HBoxContainer.new()
-	resources.add_theme_constant_override("separation", 14)
-	stock_bar.add_child(resources)
-	for resource in Economy.NAMES:
-		var group := VBoxContainer.new()
-		group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		resources.add_child(group)
-		var title := HBoxContainer.new()
-		group.add_child(title)
-		var icon := TextureRect.new()
-		icon.texture = Icons.get_icon(resource)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.custom_minimum_size = Vector2(15, 15)
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		title.add_child(icon)
-		label(title, NAMES[resource], 12).modulate = Color("adc0ce")
-		var amounts := HBoxContainer.new()
-		group.add_child(amounts)
-		stock_labels[resource] = label(amounts, "0", 20)
-		delta_labels[resource] = label(amounts, "", 11)
-		group.tooltip_text = NAMES[resource] + ": zaliha i promjena tokom posljednjih 5 sekundi."
-	var controls := panel(root, Vector4(-178, 16, -16, 84), Vector4(1, 0, 1, 0))
-	var control_row := HBoxContainer.new()
-	controls.add_child(control_row)
-	pause_button = button(control_row, "II", func(): pause_requested.emit())
-	pause_button.tooltip_text = "Pauza / nastavak"
-	speed_button = button(control_row, "1×", func(): speed_requested.emit())
-	speed_button.tooltip_text = "Brzina simulacije"
-	menu_button = button(control_row, "…", func(): toggle_popup(menu_panel))
-	menu_button.tooltip_text = "Mapa, naselje, nova partija i pomoć"
-	var player_panel := panel(root, Vector4(16, -126, 236, -16), Vector4(0, 1, 0, 1))
-	var player_column := VBoxContainer.new()
-	player_panel.add_child(player_column)
-	label(player_column, "TERRAFRONT", 16)
-	stats = label(player_column, "", 13)
-	selection_panel = panel(root, Vector4(16, -300, 236, -138), Vector4(0, 1, 0, 1))
-	var selection_column := VBoxContainer.new()
-	selection_panel.add_child(selection_column)
-	var selected_header := HBoxContainer.new()
-	selection_column.add_child(selected_header)
-	label(selected_header, "ODABRANO", 11).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button(selected_header, "×", func(): selection_panel.hide())
-	information = label(selection_column, "", 14)
-	information.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	selection_panel.hide()
-	dock = panel(root, Vector4(252, -98, -16, -16), Vector4(0, 1, 1, 1))
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 8)
-	dock.add_child(actions)
-	for action in ["inspect", "expand"]:
-		var action_button := button(actions, ACTIONS[action], func(): action_selected.emit(action))
-		action_button.icon = Icons.get_icon(action)
-		action_button.toggle_mode = true
-		action_buttons[action] = action_button
-		action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	build_button = button(actions, "Gradnja", func(): toggle_popup(build_panel))
-	build_button.icon = Icons.get_icon("build")
-	build_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	market_button = button(actions, "Trgovina", func(): toggle_popup(market_panel))
-	market_button.icon = Icons.get_icon("market")
-	market_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	quote_panel = panel(root, Vector4(252, -186, -16, -110), Vector4(0, 1, 1, 1))
-	var quote_row := HBoxContainer.new()
-	quote_panel.add_child(quote_row)
-	quote_label = label(quote_row, "", 14)
-	quote_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	quote_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	confirm_button = button(quote_row, "Potvrdi", func(): confirmed.emit())
-	confirm_button.custom_minimum_size.x = 160
-	button(quote_row, "×", func(): action_selected.emit("inspect")).tooltip_text = "Otkaži akciju"
-	quote_panel.hide()
-	build_panel = panel(root, Vector4(252, -278, -16, -110), Vector4(0, 1, 1, 1))
-	var build_column := VBoxContainer.new()
-	build_panel.add_child(build_column)
-	var build_header := HBoxContainer.new()
-	build_column.add_child(build_header)
-	label(build_header, "Šta želiš izgraditi?", 16).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button(build_header, "×", func(): build_panel.hide(); refresh_popups())
-	var buildings := HBoxContainer.new()
-	build_column.add_child(buildings)
-	for action in Economy.DEFINITIONS:
-		var definition: Dictionary = Economy.DEFINITIONS[action]
-		var action_button := button(buildings, "%s\n$%d" % [ACTIONS[action], definition.cost.Money], func():
-			build_panel.hide()
-			action_selected.emit(action))
-		action_button.icon = Icons.get_icon(definition.resource if definition.resource != "" else "house")
-		action_button.add_theme_constant_override("icon_max_width", 18)
-		action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		action_button.toggle_mode = true
-		action_buttons[action] = action_button
-		var terrain := PackedStringArray()
-		for biome in definition.biomes:
-			terrain.append(BIOMES[biome])
-		action_button.tooltip_text = "Cijena: %s\nTeren: %s\nOdržavanje / 5s: %s" % [cost_text(definition.cost), ", ".join(terrain), cost_text(definition.inputs)]
-	label(build_column, "Odaberi objekat, zatim mjesto na svojoj teritoriji.", 12).modulate = Color("adc0ce")
-	build_panel.hide()
-	market_panel = panel(root, Vector4(-300, 96, -16, 290), Vector4(1, 0, 1, 0))
-	var market_column := VBoxContainer.new()
-	market_panel.add_child(market_column)
-	var market_header := HBoxContainer.new()
-	market_column.add_child(market_header)
-	label(market_header, "Trgovina", 18).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button(market_header, "×", func(): market_panel.hide())
-	trade_resource = OptionButton.new()
-	for resource in World.RESOURCE_NAMES:
-		trade_resource.add_item(NAMES[resource])
-	trade_resource.item_selected.connect(func(_index: int): action_selected.emit(current_action))
-	market_column.add_child(trade_resource)
-	label(market_column, "Količina: 10", 12)
-	var trade_row := HBoxContainer.new()
-	market_column.add_child(trade_row)
-	buy_button = button(trade_row, "Kupi", func(): trade_requested.emit(true, World.RESOURCE_NAMES[trade_resource.selected]))
-	sell_button = button(trade_row, "Prodaj", func(): trade_requested.emit(false, World.RESOURCE_NAMES[trade_resource.selected]))
-	menu_panel = panel(root, Vector4(-300, 96, -16, 390), Vector4(1, 0, 1, 0))
-	var menu_column := VBoxContainer.new()
-	menu_panel.add_child(menu_column)
-	button(menu_column, "Cijela mapa", func(): menu_panel.hide(); overview_requested.emit())
-	button(menu_column, "Moje naselje", func(): menu_panel.hide(); home_requested.emit())
-	button(menu_column, "Kako igrati", show_help)
-	status = label(menu_column, "", 12)
-	seed_input = LineEdit.new()
-	seed_input.text = "260926"
-	seed_input.tooltip_text = "Seed za novu mapu"
-	menu_column.add_child(seed_input)
-	button(menu_column, "Nova partija", func():
-		if seed_input.text.is_valid_int():
-			reset_dialog.popup_centered()
-		else:
-			toast("Seed mora biti cijeli broj."))
-	reset_dialog = ConfirmationDialog.new()
-	reset_dialog.ok_button_text = "Nova partija"
-	reset_dialog.cancel_button_text = "Odustani"
-	reset_dialog.dialog_text = "Nova partija briše trenutnu teritoriju, građevine i zalihe. Nastaviti?"
-	reset_dialog.confirmed.connect(func(): menu_panel.hide(); new_world_requested.emit(int(seed_input.text)))
-	root.add_child(reset_dialog)
-	market_panel.hide()
-	menu_panel.hide()
-	feedback = label(root, "", 14)
-	feedback.anchor_left = 0.5
-	feedback.anchor_right = 0.5
-	feedback.offset_left = -300
-	feedback.offset_right = 300
-	feedback.offset_top = 98
-	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	feedback.add_theme_color_override("font_color", Color("f3faf8"))
-	feedback.add_theme_color_override("font_shadow_color", Color("15232d"))
-	feedback.add_theme_constant_override("shadow_offset_x", 1)
-	feedback.add_theme_constant_override("shadow_offset_y", 1)
-	feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preload("res://scripts/ui/compact_layout.gd").build(self)
 
 var current_action := "inspect"
 
@@ -266,7 +135,7 @@ func toggle_popup(target: Control) -> void:
 	refresh_popups()
 
 func refresh_popups() -> void:
-	quote_panel.visible = current_action != "inspect" and not build_panel.visible
+	quote_panel.visible = current_action in ["expand", "attack"]
 
 func toast(message: String) -> void:
 	feedback.text = message
@@ -295,28 +164,45 @@ func brief_reason(quote: Dictionary) -> String:
 		var hints := {"farm": "Farma treba ravnicu.", "lumber": "Pilana treba šumu.", "quarry": "Kamenolom treba planine.", "mine": "Rudnik treba planine.", "oil": "Nafta traži nalazište u pustinji.", "well": "Bunar gradi na kopnu.", "house": "Kuće gradi na prohodnom kopnu."}
 		return hints.get(current_action, "Odaberi odgovarajući teren.")
 	if reason.begins_with("Not enough workers"):
-		return "Nema radnika. Izgradi kuće."
+		return "Nema slobodnih radnika. Izgradi kuće (+4 radnika)."
 	if reason.begins_with("Not enough resources"):
-		return "Nedovoljno resursa."
+		return "Nedostaje: " + cost_text(quote.get("missing", {}))
 	if reason.begins_with("No "):
 		return "Ovdje nema potrebnog resursa."
+	if not reason.begins_with("Select an action"):
+		return reason
 	return "Odaberi polje na mapi."
 
 func refresh(world: RefCounted, economy: RefCounted, cell: Vector2i, action: String, quote: Dictionary, paused: bool, speed: int) -> void:
 	current_action = action
 	var player: Dictionary = world.players[1]
+	for kind in build_cost_labels:
+		action_buttons[kind].tooltip_text = "Klikni za postavljanje · desni klik odustaje\nCijena: " + cost_text(economy.construction_cost(world, 1, kind)) + "\nDodijeljeni radnici: %d" % Economy.DEFINITIONS[kind].workers
+		for resource in build_cost_labels[kind]:
+			var needed: int = economy.construction_cost(world, 1, kind)[resource]
+			var owned: int = player.stock[resource]
+			var missing := maxi(0, needed - owned)
+			var cost_label: Label = build_cost_labels[kind][resource]
+			cost_label.text = "%d/%d" % [owned, needed]
+			cost_label.tooltip_text = "%s: imaš %d, treba %d; fali %d" % [NAMES[resource], owned, needed, missing]
+			cost_label.modulate = Color("f3a593") if missing > 0 else Color("83d2b2")
 	for resource in Economy.NAMES:
 		stock_labels[resource].text = str(player.stock[resource])
 		var change: int = player.delta.get(resource, 0)
+		stock_labels[resource].tooltip_text = "%s: %d · Neto promjena prošlog ciklusa: %+d / 5s (nakon potrošnje)" % [NAMES[resource], player.stock[resource], change]
 		delta_labels[resource].text = "%+d" % change if change != 0 else ""
 		delta_labels[resource].add_theme_color_override("font_color", Color("f3a593") if change < 0 else Color("83d2b2"))
 		stock_labels[resource].add_theme_color_override("font_color", Color("f0bd77") if resource in ["Food", "Water"] and player.stock[resource] < 10 else Color("e0eaf0"))
-	stats.text = "Radnici  %d / %d\nTeritorija  %d polja" % [player.workers, player.population, economy.territory_size(world, 1)]
+	stats.text = "Radnici %d/%d" % [maxi(0, player.population - player.workers), player.population]
 	stats.tooltip_text = "Stanovništvo: %d\nPorez: $%d / 5s\nPotrošnja: %d hrane + %d vode / 5s\n%s" % [player.population, 15 + int((player.population - 12) / 4) * 3, ceili(player.population / 6.0), ceili(player.population / 6.0), "Nestašica: porez je smanjen na $4." if not player.warning.is_empty() else ""]
 	if not player.warning.is_empty():
-		stats.text += "\n! Nedostaje hrana ili voda"
+		stats.modulate = Color("efbd7b")
+	else:
+		stats.modulate = Color.WHITE
 	status.text = "Seed %d · Ciklus %d" % [world.world_seed, world.tick]
 	pause_button.text = "▶" if paused else "II"
+	if paused:
+		cycle_label.text = "Pauzirano · pritisni ▶ za proizvodnju"
 	speed_button.text = "%d×" % speed
 	var resource: String = World.RESOURCE_NAMES[trade_resource.selected]
 	var price: int = Economy.SELL_PRICE[resource] * 10
@@ -326,12 +212,26 @@ func refresh(world: RefCounted, economy: RefCounted, cell: Vector2i, action: Str
 	sell_button.disabled = player.stock[resource] < 10
 	var tile: Dictionary = world.tile(cell)
 	var building: Dictionary = economy.building_at(world, cell)
-	information.text = BIOMES[tile.biome] + (" · Tvoje" if world.ownership.get(cell, 0) == 1 else " · Slobodno")
+	var owner: int = world.ownership.get(cell, 0)
+	upgrade_context = owner == 1 and building.get("kind", "") == "barracks"
+	context_button.visible = upgrade_context
+	context_button.text = "Oprema +20%"
+	information.text = BIOMES[tile.biome] + (" · Tvoje" if owner == 1 else " · Protivnik" if owner != 0 else " · Slobodno")
 	if not building.is_empty():
 		information.text = ACTIONS[building.kind] + (" · Radi" if building.status == "Active" else " · Spremno" if building.status == "Ready" else " · Zastoj")
 		var definition: Dictionary = Economy.DEFINITIONS[building.kind]
-		information.text += "\n+%d %s / 5s" % [building.output, NAMES[definition.resource]] if definition.resource != "" else "\n+4 stanovnika"
+		information.text += "\n+%d %s / 5s" % [building.output, NAMES[definition.resource]] if definition.resource != "" else "\n" + special_output(building.kind)
+		if owner != 1:
+			information.text = "Protivnik · " + information.text
+		if building.status.begins_with("Stopped"):
+			information.text = ACTIONS[building.kind] + " · Zastoj\nNedostaje: " + cost_text(building.get("missing", {}))
+			var missing: Dictionary = building.get("missing", {})
+			information.text += "\nIzgradi bunar ili kupi vodu." if missing.has("Water") else "\nIzgradi farmu ili kupi hranu." if missing.has("Food") else "\nSačekaj porez ili prodaj resurse."
+		elif definition.resource != "" and building.status == "Active":
+			information.text += "\nDodano u zalihe: +%d" % building.get("last_output", 0)
 		information.tooltip_text = "Održavanje / 5s: " + cost_text(definition.inputs)
+		if building.get("remaining", 0.0) > 0:
+			information.text = ACTIONS[building.kind] + " · Gradnja %ds" % ceili(building.remaining)
 	else:
 		var potentials := PackedStringArray()
 		for index in World.RESOURCE_NAMES.size():
@@ -343,12 +243,18 @@ func refresh(world: RefCounted, economy: RefCounted, cell: Vector2i, action: Str
 			information.tooltip_text += "%s: %d/5\n" % [NAMES[World.RESOURCE_NAMES[index]], tile.resources[index]]
 	for key in action_buttons:
 		action_buttons[key].set_pressed_no_signal(key == action)
-	build_button.text = ACTIONS[action] if Economy.DEFINITIONS.has(action) else "Gradnja"
+	build_button.tooltip_text = "Gradnja"
 	confirm_button.disabled = not quote.ok
-	confirm_button.text = "Proširi" if action == "expand" else "Izgradi"
+	attack_fraction.visible = action == "attack"
+	confirm_button.text = "Napadni" if action == "attack" else "+%d polja" % quote.cells.size() if action == "expand" else "Gradi"
+	confirm_button.tooltip_text = cost_text(quote.cost) + "\n" + (quote.reason if action == "attack" else brief_reason(quote) if not quote.ok else "")
 	quote_label.text = cost_text(quote.cost) + "\n"
-	if quote.ok:
-		quote_label.text += "+%d polja" % quote.cells.size() if action == "expand" else "+4 stanovnika" if action == "house" else "+%d %s / 5s" % [quote.output, NAMES[Economy.DEFINITIONS[action].resource]]
+	var missing: Dictionary = economy.missing_inputs(player.stock, quote.cost)
+	quote.missing = missing
+	if action == "attack":
+		quote_label.text = quote.reason
+	elif quote.ok:
+		quote_label.text += "+%d polja" % quote.cells.size() if action == "expand" else special_output(action) if Economy.DEFINITIONS[action].resource == "" else "+%d %s / 5s" % [quote.output, NAMES[Economy.DEFINITIONS[action].resource]]
 	else:
 		quote_label.text += brief_reason(quote)
 	quote_label.tooltip_text = ""
@@ -357,14 +263,43 @@ func refresh(world: RefCounted, economy: RefCounted, cell: Vector2i, action: Str
 		var terrain := PackedStringArray()
 		for biome in definition.biomes:
 			terrain.append(BIOMES[biome])
-		quote_label.tooltip_text = "Teren: %s\nOdržavanje / 5s: %s\nRadnici: %d" % [", ".join(terrain), cost_text(definition.inputs), definition.workers]
+		quote_label.tooltip_text = "Teren: %s\nOdržavanje / 5s: %s\nTrajno dodijeljeni radnici: %d" % [", ".join(terrain), cost_text(definition.inputs), definition.workers]
 	refresh_popups()
+
+func special_output(kind: String) -> String:
+	return {"house": "+4 stanovnika", "barracks": "+2 vojnika / 5s · $4 + 2 hrane", "fort": "Zid: 5 rubnih polja · odbrana +8"}.get(kind, "")
+
+func refresh_war(world: RefCounted, war: RefCounted) -> void:
+	if not world.armies.has(1):
+		army_label.text = "Protivnik nije dostupan na ovoj mapi"
+		return
+	var army: Dictionary = world.armies[1]
+	var away: int = war.deployed(world, 1)
+	army_label.text = "Vojska %d/%d" % [army.troops, war.capacity(world, 1)]
+	army_label.tooltip_text = army.warning + "\nHrana: 1 na 12 vojnika / 5s. Novac: $1 na 15 vojnika / 5s.\nRezerva automatski brani granice. Utvrde pojačavaju okolnu odbranu."
+	army_label.tooltip_text += "\nU napadu: %d · Poginuli: %d\nOprema: nivo %d / 2." % [away, army.get("losses", 0), army.get("equipment", 0)]
+	if upgrade_context:
+		var level: int = army.get("equipment", 0)
+		context_button.text = "Oprema %d → %d" % [level, level + 1] if level < 2 else "Oprema: maksimum"
+		context_button.tooltip_text = "Napad i odbrana +20% po nivou.\n" + cost_text(war.upgrade_cost(world, 1))
+		context_button.disabled = level >= 2 or not Economy.new().affordable(world.players[1].stock, war.upgrade_cost(world, 1)) or world.winner != 0
+	else:
+		context_button.disabled = false
+	training_button.text = "Obuka: DA" if army.training else "Obuka: NE"
+	retreat_button.disabled = away == 0 or world.winner != 0
+	if world.winner != 0:
+		cycle_label.text = "Partija završena · nova partija u meniju …"
+		objective_label.text = "POBJEDA · Osvojio si glavni grad!" if world.winner == 1 else "PORAZ · Tvoj glavni grad je osvojen."
+	elif not army.warning.is_empty():
+		objective_label.text = army.warning + " Fali: " + cost_text(army.get("missing", {}))
+	else:
+		objective_label.text = "NAPAD: klik crvene granice → udio vojske → Napadni. ODBRANA: rezerva + zid."
 
 func show_help() -> void:
 	var dialog := AcceptDialog.new()
 	dialog.title = "Kako igrati"
 	dialog.ok_button_text = "U redu"
-	dialog.dialog_text = "Povuci mišem za kretanje, točkić za zoom.\n\nŠirenje → klik uz granicu → Proširi.\nGradnja → objekat → vlastito polje → Izgradi.\nTrgovina → resurs → Kupi / Prodaj.\n\nPočni s bunarom i farmom.\nZadrži miš iznad dugmeta za cijenu i detalje.\nEscape otkazuje akciju. Partija se još ne sprema."
+	dialog.dialog_text = "CILJ: osvoji crveni glavni grad, sačuvaj svoj.\n\nPovuci mapu za kretanje, točkić za zoom.\nIkonica kuće vraća kameru; pregled fronta je u meniju ⋯.\nDesni klik / Escape zatvara trenutnu akciju.\n\nKlik na svoje kopno otvara gradnju. Objekti zauzimaju 2×2 polja.\nPrevuci objekat na kopno: zelen okvir dozvoljava gradnju.\nDvoklik plaća širenje: jedno polje svakih 0,15 sekundi.\nIkonica širenja širi u svim smjerovima; meni bira 20/40/80 polja.\nGradnja desno: imaš / treba; pređi mišem za tačan manjak.\nGrađevine rade tek kad završi tajmer.\n\nPočni: bunar → farma → pilana → kasarna.\nKasarna obučava vojsku; hrana i novac održavaju vojsku.\nOdaberi kasarnu pa meni ⋯ za opremu (+20% po nivou).\nUtvrda gradi zid na 5 rubnih polja i prati granicu.\nRezerva vojske automatski brani; zid jača svoja polja.\n\nKlik na crvenu granicu → 25/50/75% vojske → Napadni.\nOstatak automatski brani teritoriju. Povuci napad vraća preživjele.\nNapad gura širi front; obje strane gube vojnike.\nTačkice iz kasarne prikazuju kretanje prema frontu.\n\nPrva gradnja ili širenje pokreće oba igrača.\nPauza zaustavlja i protivnika. Partija se još ne sprema."
 	add_child(dialog)
 	dialog.confirmed.connect(dialog.queue_free)
 	dialog.canceled.connect(dialog.queue_free)

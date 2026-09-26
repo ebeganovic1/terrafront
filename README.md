@@ -1,73 +1,93 @@
-# TERRAFRONT
+# TERRAFRONT — first war prototype
 
-A single-player strategy prototype in Godot: geography determines your economy. Claim connected territory, build on suitable biomes, manage money and six resources, and trade to cover shortages. Terrain is a crisp 480 x 336 grid without decorative tree or mountain icons.
+A single-player Godot strategy game: build a sustainable economy, train an army and capture a rival capital. One AI opponent follows the same costs, production and combat rules as the human player. This is a playable first balance, not a finished or difficulty-tuned game.
 
 ## Run
 
-Import `project.godot` in Godot 4 stable and press F5, or run `godot --path .` in this directory. Validated with Godot 4.7.2 (standard, no .NET). No external dependencies. The included GDScript editor is sufficient.
+Double-click **TERRAFRONT** on the Windows desktop. The shortcut uses the installed Godot runtime and the project in Desktop/undergrid; keep that folder in place.
 
-## First five minutes
+Import project.godot in Godot 4 stable and press F5, or run godot --path . in this directory. Validated with Godot 4.7.2 standard. No external dependencies or downloaded artwork.
 
-1. The green tint and border mark your territory. Drag with any mouse button to pan; scroll to zoom.
-2. Open **Gradnja**, choose **Bunar**, click owned land, check the compact cost strip, then **Izgradi**. Use a tile with water potential or next to a lake/river.
-3. Build a **Farma** on owned plains. A well and farm establish food/water supply.
-4. Choose **Širenje**, click unclaimed land directly touching your border, inspect the gold preview and price, then **Proširi**. Water cannot be claimed or crossed.
-5. Expand toward forests and mountains. Build a lumber camp for wood, a quarry for stone and an iron mine for iron.
-6. Open **Trgovina** to buy/sell batches of 10. Housing (**Kuće**) adds population/workers and taxes, but increases food/water demand.
+## First match
 
-Every claim or building requires explicit confirmation; dragging never spends resources. Actual stockpiles are always visible in the compact top resource strip. Small green/red numbers show the most recent tick's net change, not a forecast. Tile potential appears only on selection and in tooltips, not as stored resources.
+1. Green borders are yours; red borders belong to the opponent. Your first successful construction or expansion starts both players' clocks; before then, exploration does not consume supplies.
+2. Click your empty land to open construction. Start with a well, farm and lumber camp. Most buildings occupy a real 2×2 footprint: all four cells must be owned, dry and vacant; terrain and resource potential are checked at the top-left anchor.
+3. Drag a building onto a green placement preview, or select it and confirm the price. Invalid drops spend nothing. Every tick lasts 5 seconds at 1x.
+4. Build a barracks. It trains up to 2 soldiers per tick for $4 and 2 Food. The army also consumes Food and Money; keep production running.
+5. Expand toward the enemy: single-click previews the cost; double-click adjacent free land pays once and queues expansion at one tile per 0.15 simulation seconds. Only one expansion per player can run at a time.
+6. Click an enemy border, select 25%, 50% or 75% of reserve troops and press Napadni. A forecast is an estimate, not a guarantee. The remaining reserve automatically defends.
+7. Attacks push a widening wave along the shared border around the clicked origin, taking casualties. Individual cells transfer at most every 0.2 simulation seconds, depending on available attack strength. Povuci napad returns survivors. A fort is now a wall along five connected boundary cells. It follows the actual outline, adds defense on those cells, and stays where built. Forests and mountains resist more strongly.
+8. Click a barracks to buy equipment with Iron and Money: two levels, +20% attack progress and defense each.
+9. Capture any of the enemy capital's four cells to win. Losing your capital ends the match. Simulation and purchases stop after the result.
 
-The dark, map-first HUD has four permanent bottom actions: **Pregled**, **Širenje**, **Gradnja**, **Trgovina**. Buildings, trading and settings open only when requested. The small selection card can be closed; detailed costs, terrain requirements, upkeep and population rules live in tooltips. Short notifications disappear after five seconds. UI labels are in Bosnian; the internal resource and action IDs remain English.
+## Controls
 
-## Controls and interface
+Selecting a building puts its placement preview under the pointer. Click valid land to build immediately; it stays selected for repeated placements. Right-click/Escape cancels. Drag-and-drop remains supported. There is no separate build confirmation.
+
+Start with 12 workers. Buildings permanently assign their listed workers; completed houses add 4 more. Production does not consume additional workers or require free workers. Normal resource upkeep still applies. The bottom worker count is free/total.
+
+Each previously started building of the same type adds 10% of that type's base cost to subsequent construction, rounded up per resource. Counts are separate per player and type, include unfinished buildings and do not reset when a building is lost. The construction list shows the current price.
 
 | Input | Action |
 | --- | --- |
-| Hold left/right/middle mouse + drag | Pan camera |
-| Mouse wheel | Zoom |
-| Short left click | Select tile, preview chosen action |
-| Bottom actions + Izgradi / Proširi | Claim or construct |
-| Escape | Close panels and return to Pregled mode |
-| Home / … > Moje naselje | Center starting settlement |
-| … > Cijela mapa | View the whole continent |
-| II / play button | Stop / resume simulation, camera stays usable |
-| 1× / 2× | Change simulation speed |
-| … > Nova partija + seed | Reset world after confirmation |
-| … > Kako igrati, or hover a button | Rules and prices |
+| Hold left/right/middle mouse and drag | Pan map |
+| Wheel | Zoom |
+| Click owned empty land | Open contextual construction |
+| Click a building | Inspect production, shortage or military function |
+| Drag building from menu | Construct on a valid 2×2 owned site |
+| Single / double-click adjacent free land | Preview / pay for expansion |
+| Click enemy land | Attack panel; only adjacent enemy cells can be attacked |
+| Right click / Escape | Cancel selection and close action panels |
+| Naselje / Home | Center home capital |
+| Front | Fit both capitals and the intervening front |
+| Protivnik | Center enemy capital |
+| Obuka: DA / NE | Enable / pause recruitment, not existing army upkeep |
+| Povuci napad | Recall surviving attacking troops |
+| II / play, 1x / 2x | Pause both players / change simulation speed |
+| … menu | Help, seed and confirmed new match |
 
-## Economy
+Construction opens in a scrollable right sidebar. Every building lists each resource as owned / required with shortages in red and exact missing amounts in tooltips. The attack panel states committed troops and the reserve left to defend; the reserve defends automatically.
 
-Start: $350, Food 60, Wood 80, Stone 60, Iron 0, Oil 0, Water 50; population/workforce 12.
+The rival starts at least 95 land-route steps and 70 straight-line cells away, and considers expansion every 30 simulation seconds instead of every 15.
 
-A simulation tick is 5 seconds at 1x. A supplied starting settlement earns $15 and consumes 2 Food + 2 Water per tick. Production depends on the selected tile's resource potential, while upkeep and construction costs depend on building type. Buildings stop automatically if their full upkeep cannot be paid and resume when supplies recover. No stock goes negative. See **[docs/BALANCE.md](docs/BALANCE.md)** for all prices and formulas.
+The compact bottom bar shows inventories, reserve/max soldiers and workers. Four icons provide home, all-direction expansion, pause and the menu; the right-hand circles open construction and trade. There is no minimap or top bar. Production and consumption are different: a farm's gross output can exceed the final inventory increase. A gold dot on a building indicates a production shortage; click to see the missing inputs. The countdown explicitly identifies paused production. Circular letter badges have been replaced with original, cached building illustrations.
 
-## Implemented
+## Construction and expansion
 
-- Seeded continent, sea, lakes, nine candidate rivers routed to the sea, ten biome types and resource potential.
-- 161,280 logical cells and sharp nearest filtering; no blur shader or per-tile nodes.
-- Connected initial territory, paid boundary expansion with preview, tint and outline.
-- Farm, lumber camp, quarry, iron mine, well, housing and oil pump.
-- Stockpiles, taxes, upkeep, production, population, workforce and fixed-price market.
-- Pause, 2x speed, compact resource strip, four-action bottom dock and contextual panels.
-- Independent world state, simulation rules and presentation; owner/entity IDs are retained for future multiplayer.
+Buildings reserve costs, space and workers immediately, but only operate after their visible timer completes. Wells take 6s; farms/lumber 10s; houses 12s; quarries 14s; forts 15s; barracks 18s; mines 20s; oil pumps 24s. Pause freezes construction and 2x accelerates it.
 
-## Generation
+Expansion uses a terrain-weighted, irregular frontier with a budget of 20, 40 or 80 cells (default 40), rather than a fixed shape. The bottom expansion icon previews growth around all sides; confirm in the bottom bar. Double-click adjacent neutral land for directed growth. Both sides lose actual soldiers in combat; moving dots from completed barracks are cosmetic supply-of-troops visuals, not extra units.
 
-Elevation, moisture and temperature noise plus continental falloff produce the biomes. Sampling is three times finer per axis than the original prototype, preserving a 7,680 x 5,376 world area. Priority-flood drainage computes complete river routes to the sea, including through lakes. Depression filling is virtual, not physical erosion. Source spacing, lake sizes and spawn search scale with resolution. Generation takes approximately 2.3 seconds on the development machine and remains synchronous.
+## Current scope
+
+- Crisp 480×336 terrain, ten biomes, rivers connected to the sea and deterministic seed generation.
+- Human plus one rival on the same land-connected component, separate starting stocks and territory.
+- Nine building types: well, farm, lumber, quarry, mine, housing, oil, barracks and fort.
+- Connected paid expansion, automatic economic production, workforce and market.
+- Troop capacity, recruitment, upkeep/desertion, reserve, allocation, retreat, fort/terrain defense and equipment.
+- Gradual attacks, destruction of captured buildings, capital victory/defeat and final-state purchase lock.
+- AI sustains a basic economy, trades at normal prices, expands toward the player and attacks connected borders.
+- Context controls, 2×2 previews, home/front/enemy navigation and pause.
 
 ## Validation
 
-```powershell
-godot_console --headless --path . --editor --quit
+Run these from the project directory with the Godot console executable:
+
+~~~powershell
 godot_console --headless --path . --script tests/smoke.gd
 godot_console --headless --path . --script tests/economy.gd
 godot_console --headless --path . --script tests/hud.gd
-```
+godot_console --headless --path . --script tests/placement.gd
+godot_console --headless --path . --script tests/production_live.gd
+godot_console --headless --path . --script tests/war.gd
+godot_console --headless --path . --script tests/fronts.gd
+godot_console --headless --path . --script tests/compact_game.gd
+~~~
 
-Add `-- --visual` to a non-headless test run to save screenshots in `logs/` (create that folder first). Smoke tests cover six seeds, determinism, resources, river connectivity, spawn, rendering setup and camera input. Economy tests check rejected operations, exact spending, every building's output/upkeep, workforce, shortages/recovery, trade, confirmation, pause and speed. HUD tests exercise actual button signals, all building bindings, popup visibility, translated resource selection, market charges, Escape, toast expiry and smaller-window bounds. `.godot/` and `logs/` are ignored by Git; Godot UID files are tracked.
+Non-headless tests with -- --visual save screenshots to logs/. Placement's native drag test moves the actual cursor inside its own test window. Tests cover six seeded maps and connected rival spawns, 2×2 overlap/cost rejection, all production types, real-time inventory growth, UI bindings/layout, training and equipment charges, retreat, terrain/fort effects, victory/defeat and AI expansion/attack on the default map.
 
-## Prototype limits and next steps
+## Limits
 
-No save/load yet: closing the game or confirming New loses the current session. No demolition, construction timers, roads, transport, combat, competing players or networking. Stocks are global per player, deposits do not deplete, buildings complete immediately, market supply is unlimited and workers are allocated automatically. Mountains can be claimed and mined even though the future unit traversal flag marks them impassable. Water currently blocks expansion; bridges and shipping are future work. This is a first playable balance, not a tuned 30-60 minute match.
+No save/load: closing or resetting loses progress. One active attack per player; no individual units, bridges, naval combat, fog of war, diplomacy or multiplayer. Water blocks movement and expansion. Supply is global, deposits do not deplete and the market still uses unlimited fixed-price batches. Oil remains an economic placeholder rather than a military input. Equipment and forts use simple global/local modifiers, not unit classes. AI is rule-based, and long-match balance and additional seeds need more playtesting.
 
-Next: save/load, building management, then roads and resource transport before multiplayer.
+See docs/BALANCE.md for prices and combat formulas, and docs/ARCHITECTURE.md for implementation boundaries.

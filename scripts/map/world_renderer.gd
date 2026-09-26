@@ -31,12 +31,3 @@ func set_world(value: RefCounted) -> void:
 	ground.texture = ImageTexture.create_from_image(colors)
 	ground.scale = Vector2.ONE * World.TILE_SIZE
 	queue_redraw()
-
-func _draw() -> void:
-	if world == null:
-		return
-	for settlement in world.settlements:
-		var center: Vector2 = (Vector2(settlement.cell) + Vector2.ONE * 0.5) * World.TILE_SIZE
-		draw_circle(center, 17, Color("476b64"), true, -1, true)
-		draw_arc(center, 17, 0, TAU, 48, Color("f3f7ee"), 2.5, true)
-		draw_circle(center, 5, Color("f3f7ee"), true, -1, true)

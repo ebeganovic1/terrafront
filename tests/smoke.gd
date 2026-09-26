@@ -27,6 +27,13 @@ func run() -> void:
 		assert(world.tiles == repeat.tiles)
 		assert(world.settlements == repeat.settlements)
 		assert(world.river_paths == repeat.river_paths)
+		var economy := preload("res://scripts/systems/economy.gd").new()
+		var war := preload("res://scripts/systems/war.gd").new()
+		economy.initialize(world)
+		assert(war.setup(world), "Every tested seed must support a reachable rival")
+		assert(world.players.size() == 2)
+		for route_cell in world.enemy_route:
+			assert(world.tile(route_cell).biome >= 3)
 		print("PASS seed ", seed_value, " biome counts ", counts)
 	var scene = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)

@@ -1,0 +1,22 @@
+extends SceneTree
+
+func _initialize() -> void:
+	DirAccess.make_dir_recursive_absolute("res://assets")
+	var image := preload("res://scripts/ui/building_art.gd").icon("capital").get_image()
+	var bytes := image.save_png_to_buffer()
+	var file := FileAccess.open("res://assets/terrafront.ico", FileAccess.WRITE)
+	file.store_16(0)
+	file.store_16(1)
+	file.store_16(1)
+	file.store_8(128)
+	file.store_8(128)
+	file.store_8(0)
+	file.store_8(0)
+	file.store_16(1)
+	file.store_16(32)
+	file.store_32(bytes.size())
+	file.store_32(22)
+	file.store_buffer(bytes)
+	file.close()
+	print("Created TERRAFRONT desktop icon")
+	quit()

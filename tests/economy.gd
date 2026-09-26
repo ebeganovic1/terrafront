@@ -27,33 +27,38 @@ func run() -> void:
 	assert(not economy.execute(world, 1, "expand", HOME + Vector2i(50, 0)).ok)
 	assert(player.stock == stock)
 	assert(economy.execute(world, 1, "expand", border).ok)
+	assert(world.expansions.size() == 1)
+	economy.advance_expansion(world, 10.0)
 	for resource in quote.cost:
 		assert(player.stock[resource] == stock[resource] - quote.cost[resource])
 	assert(world.ownership.size() == 221 + quote.cells.size())
 	stock = player.stock.duplicate()
-	assert(not economy.execute(world, 1, "expand", border).ok)
+	assert(not economy.execute(world, 1, "expand", HOME + Vector2i(50, 0)).ok)
 	assert(player.stock == stock)
-	assert(not economy.execute(world, 2, "farm", HOME + Vector2i(1, 0)).ok)
+	assert(not economy.execute(world, 2, "farm", HOME + Vector2i(2, 0)).ok)
 	world.tiles[world.index(HOME + Vector2i(0, 11))] = {"biome": 0}
 	assert(not economy.quote(world, 1, "expand", HOME + Vector2i(0, 11)).ok)
 	player.stock.Money = 0
-	assert(not economy.execute(world, 1, "farm", HOME + Vector2i(1, 0)).ok)
+	assert(not economy.execute(world, 1, "farm", HOME + Vector2i(2, 0)).ok)
 	assert(world.buildings.is_empty())
 	world = fixture()
 	player = world.players[1]
-	assert(economy.execute(world, 1, "well", HOME + Vector2i(1, 0)).ok)
-	assert(economy.execute(world, 1, "farm", HOME + Vector2i(2, 0)).ok)
+	assert(economy.execute(world, 1, "well", HOME + Vector2i(2, 0)).ok)
+	economy.advance_construction(world, 30.0)
+	assert(economy.execute(world, 1, "farm", HOME + Vector2i(4, 0)).ok)
+	economy.advance_construction(world, 30.0)
 	assert(player.stock.Money == 250)
 	assert(player.workers == 3)
-	assert(not economy.execute(world, 1, "farm", HOME + Vector2i(2, 0)).ok)
-	assert(not economy.execute(world, 1, "lumber", HOME + Vector2i(3, 0)).ok)
+	assert(not economy.execute(world, 1, "farm", HOME + Vector2i(4, 0)).ok)
+	assert(not economy.execute(world, 1, "lumber", HOME + Vector2i(6, 0)).ok)
 	assert(not economy.execute(world, 1, "farm", HOME).ok)
 	economy.step(world)
 	assert(player.stock.Money == 262)
 	assert(player.stock.Food == 66)
 	assert(player.stock.Water == 54)
 	assert(player.delta.Money == 12)
-	assert(economy.execute(world, 1, "house", HOME + Vector2i(3, 0)).ok)
+	assert(economy.execute(world, 1, "house", HOME + Vector2i(6, 0)).ok)
+	economy.advance_construction(world, 30.0)
 	assert(player.population == 16)
 	var money: int = player.stock.Money
 	var food: int = player.stock.Food
@@ -64,10 +69,11 @@ func run() -> void:
 	assert(not economy.trade(world, 1, "Oil", false))
 	assert(not economy.trade(world, 1, "Unknown", true))
 	player.workers = player.population
-	assert(not economy.quote(world, 1, "farm", HOME + Vector2i(4, 0)).ok)
+	assert(not economy.quote(world, 1, "farm", HOME + Vector2i(8, 0)).ok)
 	world = fixture()
 	player = world.players[1]
-	economy.execute(world, 1, "farm", HOME + Vector2i(1, 0))
+	economy.execute(world, 1, "farm", HOME + Vector2i(2, 0))
+	economy.advance_construction(world, 30.0)
 	player.stock.Water = 0
 	economy.step(world)
 	assert(world.buildings[0].status.begins_with("Stopped"))
@@ -86,9 +92,10 @@ func run() -> void:
 		for resource in Economy.NAMES:
 			player.stock[resource] = 1000
 		var definition: Dictionary = Economy.DEFINITIONS[kind]
-		var cell := HOME + Vector2i(1, 0)
+		var cell := HOME + Vector2i(10, 0) if kind == "fort" else HOME + Vector2i(2, 0)
 		world.tiles[world.index(cell)] = {"biome": definition.biomes[0], "resources": [5, 5, 5, 5, 5, 5]}
 		assert(economy.execute(world, 1, kind, cell).ok)
+		economy.advance_construction(world, 30.0)
 		var balances: Dictionary = player.stock.duplicate()
 		economy.step(world)
 		var people_use := ceili(player.population / 6.0)
@@ -132,7 +139,7 @@ func run() -> void:
 	var target := Vector2i(-1, -1)
 	for cell in scene.world.ownership:
 		for neighbor in scene.world.neighbors(cell):
-			if scene.economy.quote(scene.world, 1, "expand", neighbor).ok:
+			if not scene.world.ownership.has(neighbor) and scene.economy.quote(scene.world, 1, "expand", neighbor).ok:
 				target = neighbor
 				break
 		if target.x >= 0:
@@ -142,6 +149,7 @@ func run() -> void:
 	scene.inspect(target)
 	var old_size: int = scene.world.ownership.size()
 	scene.confirm_action()
+	scene.economy.advance_expansion(scene.world, 10.0)
 	assert(scene.world.ownership.size() > old_size)
 	scene.select_action("inspect")
 	scene.inspect(farm)

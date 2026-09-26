@@ -18,10 +18,11 @@ func run() -> void:
 	for kind in scene.Economy.DEFINITIONS:
 		hud.action_buttons[kind].pressed.emit()
 		assert(scene.selected_action == kind, "Every build button selects its own action")
-		assert(not hud.build_panel.visible and hud.quote_panel.visible)
+		assert(not hud.build_panel.visible and not hud.quote_panel.visible)
 		assert(scene.world.players[1].stock == stock, "Selection must never spend")
-	hud.build_button.pressed.emit()
-	assert(hud.build_panel.visible and not hud.quote_panel.visible)
+	if not hud.build_panel.visible:
+		hud.build_button.pressed.emit()
+	assert(hud.build_panel.visible)
 	hud.market_button.pressed.emit()
 	assert(hud.market_panel.visible and not hud.build_panel.visible)
 	hud.trade_resource.select(1)

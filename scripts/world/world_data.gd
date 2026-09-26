@@ -16,6 +16,15 @@ var ownership: Dictionary = {}
 var buildings: Array[Dictionary] = []
 var next_entity_id := 2
 var tick := 0
+var armies: Dictionary = {}
+var battles: Array[Dictionary] = []
+var winner := 0
+var war_started := false
+var enemy_route: Array[Vector2i] = []
+var expansions: Array[Dictionary] = []
+var walls: Dictionary = {}
+var wall_edges: Dictionary = {}
+var wall_jobs: Array[Dictionary] = []
 
 func index(cell: Vector2i) -> int:
 	return cell.y * WIDTH + cell.x
