@@ -8,6 +8,42 @@ Double-click **TERRAFRONT** on the Windows desktop. The shortcut uses the instal
 
 Import project.godot in Godot 4 stable and press F5, or run godot --path . in this directory. Validated with Godot 4.7.2 standard. No external dependencies or downloaded artwork.
 
+## Art and UI
+
+The interface is built from the pixel-art design pack in `assets/`, not from
+generated vector shapes. Nothing is downloaded at runtime.
+
+| Folder | Contents |
+| --- | --- |
+| `assets/ikone` | 16x16 icons: resources, units, controls, light and dark variants |
+| `assets/zgrade` | 32x32 building sprites, one per building type plus the town hall |
+| `assets/plocice` | Biome, settlement and production swatches used as style reference |
+| `assets/fonts` | Pixelify Sans and Silkscreen, both OFL, with their licences |
+| `docs/design` | The 1440x900 reference map and the original brief |
+| `tools/generator` | Pillow scripts that drew the pack; edit and re-run to change it |
+
+`scripts/ui/design.gd` is the single source of colours and fonts. The palette is
+lifted straight from the generator scripts, so the HUD, the territory borders and
+the terrain all use the same values. Change a colour there and it changes everywhere.
+
+Two rules keep the art crisp. Icons are only ever drawn at whole multiples of their
+native size, through `Icons.scaled(key, factor)`, because a pixel glyph at 1.5x is
+mud. Fonts are loaded with antialiasing, hinting and subpixel positioning all off.
+
+Terrain is no longer one flat colour per tile. Each tile is painted from a small
+4x4 patch, with four variants per biome, so grass has tufts, desert has dunes, water
+has wave dashes and rock has speckle. The patches are prebuilt once and the whole
+480x336 map is assembled with one blit per tile, which takes about 50 ms. The ground
+texture is therefore 1920x1344 and is drawn with nearest filtering and no material.
+
+A building sprite is 32x32 and a building occupies 2x2 tiles of 16 units, so sprites
+land on the map at exactly 1:1 with no resampling.
+
+The pack covered every icon the game needed except one. The expansion icon,
+`ikone/kontrole/sirenje_*`, was drawn to match: same 16x16 grid, same monochrome
+silhouette, same cream `#efe6cf` and dark `#3a2a1c`. It is reproducible from
+`tools/generator/dodatne_ikone.py`.
+
 ## First match
 
 1. Green borders are yours; red borders belong to the opponent. Your first successful construction or expansion starts both players' clocks; before then, exploration does not consume supplies.

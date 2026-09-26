@@ -3,13 +3,15 @@ extends RefCounted
 const Economy = preload("res://scripts/systems/economy.gd")
 const Art = preload("res://scripts/ui/building_art.gd")
 const Icons = preload("res://scripts/ui/hud_icons.gd")
+const Design = preload("res://scripts/ui/design.gd")
 
-static func icon(parent: Node, key: String, extent: int = 14) -> void:
+# Izvorne ikone su 16x16. Crtaju se samo na 16, 32, 48 ... jer svaki drugi
+# faktor daje mutne rubove.
+static func icon(parent: Node, key: String, factor: int = 1) -> void:
 	var image := TextureRect.new()
-	image.texture = Icons.get_icon(key)
-	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	image.custom_minimum_size = Vector2(extent, extent)
+	image.texture = Icons.scaled(key, factor)
+	image.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	image.custom_minimum_size = Vector2.ONE * 16 * factor
 	parent.add_child(image)
 
 static func round_button(hud: CanvasLayer, root: Control, key: String, top: float, callback: Callable) -> Button:
@@ -18,18 +20,20 @@ static func round_button(hud: CanvasLayer, root: Control, key: String, top: floa
 	result.anchor_right = 1
 	result.anchor_top = 0.5
 	result.anchor_bottom = 0.5
-	result.offset_left = -64
+	result.offset_left = -72
 	result.offset_right = -16
 	result.offset_top = top
-	result.offset_bottom = top + 48
-	result.icon = Icons.get_icon(key)
+	result.offset_bottom = top + 56
+	result.icon = Icons.scaled(key, 2)
 	result.tooltip_text = "Gradnja" if key == "build" else "Trgovina"
-	for state in ["normal", "hover", "pressed", "focus"]:
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color("203b43") if state == "normal" else Color("376d65")
-		style.set_corner_radius_all(24)
-		style.set_content_margin_all(10)
-		result.add_theme_stylebox_override(state, style)
+	var states := {
+		"normal": [Design.BUTTON_BG, Design.PANEL_BORDER],
+		"hover": [Design.BUTTON_HOVER, Design.CREAM_DIM],
+		"pressed": [Design.BUTTON_DOWN, Design.CREAM],
+		"focus": [Color.TRANSPARENT, Design.CREAM],
+	}
+	for state in states:
+		result.add_theme_stylebox_override(state, Design.box(states[state][0], states[state][1], 2, 10))
 	return result
 
 static func build(hud: CanvasLayer) -> void:
@@ -46,26 +50,30 @@ static func build(hud: CanvasLayer) -> void:
 	hud.dock = hud.panel(root, Vector4(12, -96, -12, -12), Vector4(0, 1, 1, 1))
 	var dock_style := hud.dock.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	dock_style.set_content_margin_all(8)
-	dock_style.bg_color = Color(0.07, 0.12, 0.15, 0.88)
+	dock_style.bg_color = Color(Design.PANEL_BG, 0.94)
 	hud.dock.add_theme_stylebox_override("panel", dock_style)
 	hud.stock_bar = hud.dock
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 3)
 	hud.dock.add_child(content)
 	var resources := HBoxContainer.new()
-	resources.add_theme_constant_override("separation", 8)
+	resources.add_theme_constant_override("separation", 14)
 	content.add_child(resources)
 	for resource in Economy.NAMES:
 		var group := HBoxContainer.new()
-		group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		group.add_theme_constant_override("separation", 4)
 		group.tooltip_text = hud.NAMES[resource]
 		resources.add_child(group)
 		icon(group, resource)
-		hud.stock_labels[resource] = hud.label(group, "0", 15)
-		hud.delta_labels[resource] = hud.label(group, "", 10)
+		hud.stock_labels[resource] = hud.label(group, "0", 16)
+		hud.delta_labels[resource] = hud.label(group, "", 12)
 		hud.delta_labels[resource].hide()
-	hud.army_label = hud.label(resources, "", 13)
-	hud.stats = hud.label(resources, "", 13)
+	# Gura brojace i kontrole na desni kraj trake.
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	resources.add_child(spacer)
+	hud.army_label = hud.label(resources, "", 16)
+	hud.stats = hud.label(resources, "", 16)
 	var controls := HBoxContainer.new()
 	resources.add_child(controls)
 	for action in ["inspect", "expand"]:
@@ -78,7 +86,8 @@ static func build(hud: CanvasLayer) -> void:
 		hud.action_buttons[action] = control
 	hud.pause_button = hud.button(controls, "Ⅱ", func(): hud.pause_requested.emit())
 	hud.pause_button.tooltip_text = "Pauza / nastavak"
-	hud.menu_button = hud.button(controls, "⋯", func(): hud.toggle_popup(hud.menu_panel))
+	hud.menu_button = hud.button(controls, "", func(): hud.toggle_popup(hud.menu_panel))
+	hud.menu_button.icon = Icons.get_icon("menu")
 	hud.menu_button.tooltip_text = "Vojska, pregled mape i postavke"
 	var lower := HBoxContainer.new()
 	content.add_child(lower)
@@ -100,7 +109,7 @@ static func build(hud: CanvasLayer) -> void:
 	hud.attack_fraction.item_selected.connect(func(index: int): hud.attack_fraction_changed.emit([0.25, 0.5, 0.75][index]))
 	order.add_child(hud.attack_fraction)
 	hud.confirm_button = hud.button(order, "Potvrdi", func(): hud.confirmed.emit())
-	hud.button(order, "×", func(): hud.action_selected.emit("inspect"))
+	hud.button(order, "", func(): hud.action_selected.emit("inspect")).icon = Icons.get_icon("close")
 	for control in order.get_children():
 		if control is BaseButton:
 			for state in ["normal", "hover", "pressed", "focus", "disabled"]:
@@ -116,7 +125,7 @@ static func build(hud: CanvasLayer) -> void:
 	var header := HBoxContainer.new()
 	build_column.add_child(header)
 	hud.label(header, "GRADNJA", 14).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hud.button(header, "×", func(): hud.build_panel.hide())
+	hud.button(header, "", func(): hud.build_panel.hide()).icon = Icons.get_icon("close")
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -131,16 +140,16 @@ static func build(hud: CanvasLayer) -> void:
 		buildings.add_child(card)
 		var control: Button = hud.button(card, "%s  ·  %ds" % [hud.ACTIONS[kind], Economy.BUILD_SECONDS[kind]], func(): hud.action_selected.emit(kind))
 		control.icon = Art.icon(kind)
-		control.expand_icon = true
-		control.add_theme_constant_override("icon_max_width", 25)
-		control.custom_minimum_size.y = 32
+		control.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		control.add_theme_constant_override("h_separation", 10)
+		control.custom_minimum_size.y = 40
 		control.toggle_mode = true
 		hud.action_buttons[kind] = control
 		var costs := HBoxContainer.new()
 		card.add_child(costs)
 		hud.build_cost_labels[kind] = {}
 		for resource in definition.cost:
-			icon(costs, resource, 12)
+			icon(costs, resource)
 			hud.build_cost_labels[kind][resource] = hud.label(costs, "", 11)
 		control.tooltip_text = "Imaš / treba. Crveno: resurs nedostaje.\nCijena: " + hud.cost_text(definition.cost)
 		control.set_drag_forwarding(func(_position: Vector2):
@@ -163,7 +172,7 @@ static func build(hud: CanvasLayer) -> void:
 	market.add_child(hud.trade_resource)
 	hud.buy_button = hud.button(market, "Kupi", func(): hud.trade_requested.emit(true, hud.World.RESOURCE_NAMES[hud.trade_resource.selected]))
 	hud.sell_button = hud.button(market, "Prodaj", func(): hud.trade_requested.emit(false, hud.World.RESOURCE_NAMES[hud.trade_resource.selected]))
-	hud.button(market, "×", func(): hud.market_panel.hide())
+	hud.button(market, "", func(): hud.market_panel.hide()).icon = Icons.get_icon("close")
 	hud.market_panel.hide()
 	hud.menu_panel = hud.panel(root, Vector4(-380, -610, -16, -94), Vector4(1, 1, 1, 1))
 	var menu_scroll := ScrollContainer.new()

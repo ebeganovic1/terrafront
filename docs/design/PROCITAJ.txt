@@ -1,0 +1,10 @@
+Terrafront – asseti iz dizajna
+
+mapa/         mapa 1440x900 (3 px po pikselu, grid 30 px = 1 polje)
+zgrade/       sprajtovi zgrada 32x32 (+ @3x verzije za prikaz)
+ikone/        resursi, jedinice i kontrole 16x16 (+ @3x)
+plocice/      biomi, naselja, proizvodnja, jedinice (+ @3x); teritorija je već u punoj veličini
+generator/    Python (Pillow) skripte koje crtaju sve iznad – mijenjaj pozicije/boje i pokreni ponovo
+
+Za skaliranje u igri koristi nearest-neighbor (bez zamućivanja), npr. CSS image-rendering: pixelated.
+Fontovi u dizajnu: Pixelify Sans i Silkscreen (Google Fonts, OFL licenca).

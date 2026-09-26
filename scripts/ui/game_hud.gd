@@ -24,6 +24,7 @@ const World = preload("res://scripts/world/world_data.gd")
 const Economy = preload("res://scripts/systems/economy.gd")
 const Icons = preload("res://scripts/ui/hud_icons.gd")
 const Art = preload("res://scripts/ui/building_art.gd")
+const Design = preload("res://scripts/ui/design.gd")
 const NAMES := {"Money": "Novac", "Food": "Hrana", "Wood": "Drvo", "Stone": "Kamen", "Iron": "Željezo", "Oil": "Nafta", "Water": "Voda"}
 const ACTIONS := {"inspect": "Naselje", "expand": "Front", "attack": "Napad", "barracks": "Kasarna", "fort": "Utvrda", "farm": "Farma", "lumber": "Pilana", "quarry": "Kamenolom", "mine": "Rudnik", "well": "Bunar", "house": "Kuće", "oil": "Nafta"}
 const BIOMES := ["More", "Jezero", "Rijeka", "Obala", "Ravnica", "Šuma", "Planine", "Pustinja", "Močvara", "Snijeg"]
@@ -73,24 +74,20 @@ var current_action := "inspect"
 
 func make_theme() -> Theme:
 	var theme := Theme.new()
-	theme.default_font_size = 14
+	theme.default_font = Design.body()
+	theme.default_font_size = 16
 	for type in ["Label", "Button", "LineEdit", "OptionButton"]:
-		theme.set_color("font_color", type, Color("e0eaf0"))
+		theme.set_color("font_color", type, Design.CREAM)
 		theme.set_color("font_hover_color", type, Color.WHITE)
 		theme.set_color("font_pressed_color", type, Color.WHITE)
-		theme.set_color("font_disabled_color", type, Color("75838f"))
+		theme.set_color("font_disabled_color", type, Design.DISABLED)
 		if type == "Label":
 			continue
-		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-			var style := StyleBoxFlat.new()
-			style.bg_color = Color("293d4b") if state in ["normal", "disabled"] else Color("356d66")
-			style.set_corner_radius_all(6)
-			style.set_content_margin_all(9)
-			if state == "focus":
-				style.bg_color = Color.TRANSPARENT
-				style.border_color = Color("75bbae")
-				style.set_border_width_all(1)
-			theme.set_stylebox(state, type, style)
+		theme.set_stylebox("normal", type, Design.box(Design.BUTTON_BG, Design.PANEL_BORDER))
+		theme.set_stylebox("hover", type, Design.box(Design.BUTTON_HOVER, Design.CREAM_DIM))
+		theme.set_stylebox("pressed", type, Design.box(Design.BUTTON_DOWN, Design.CREAM))
+		theme.set_stylebox("disabled", type, Design.box(Design.PANEL_DEEP, Design.PANEL_BORDER))
+		theme.set_stylebox("focus", type, Design.box(Color.TRANSPARENT, Design.CREAM))
 	return theme
 
 func panel(parent: Control, offsets: Vector4, anchors: Vector4) -> PanelContainer:
@@ -104,13 +101,7 @@ func panel(parent: Control, offsets: Vector4, anchors: Vector4) -> PanelContaine
 	result.offset_top = offsets.y
 	result.offset_right = offsets.z
 	result.offset_bottom = offsets.w
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.075, 0.12, 0.16, 0.96)
-	style.border_color = Color("344954")
-	style.set_corner_radius_all(8)
-	style.set_border_width_all(1)
-	style.set_content_margin_all(12)
-	result.add_theme_stylebox_override("panel", style)
+	result.add_theme_stylebox_override("panel", Design.box(Color(Design.PANEL_BG, 0.97), Design.PANEL_BORDER, 2, 12))
 	return result
 
 func label(parent: Node, value: String, size: int = 14) -> Label:
@@ -200,7 +191,8 @@ func refresh(world: RefCounted, economy: RefCounted, cell: Vector2i, action: Str
 	else:
 		stats.modulate = Color.WHITE
 	status.text = "Seed %d · Ciklus %d" % [world.world_seed, world.tick]
-	pause_button.text = "▶" if paused else "II"
+	pause_button.text = ""
+	pause_button.icon = Icons.scaled("play" if paused else "pause", 1)
 	if paused:
 		cycle_label.text = "Pauzirano · pritisni ▶ za proizvodnju"
 	speed_button.text = "%d×" % speed

@@ -1,29 +1,82 @@
 extends RefCounted
 
-const PATHS := {
-	"Money": '<circle cx="12" cy="12" r="8"/><path d="M15 8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9m3-10v12"/>',
-	"Food": '<path d="M12 21V4m0 6C5 10 5 4 5 4c7 0 7 6 7 6Zm0 5c7 0 7-6 7-6-7 0-7 6-7 6Zm0 4c-7 0-7-6-7-6 7 0 7 6 7 6Z"/>',
-	"Wood": '<path d="m4 8 12-4 4 4-12 4Zm0 0v9l4 4 12-4V8M8 12v9"/>',
-	"Stone": '<path d="m3 17 3-9 8-4 6 5 1 8-9 4Zm3-9 7 4 7-3m-7 3-1 9"/>',
-	"Iron": '<path d="m3 16 4-8h10l4 8-9 4Zm0 0h18M7 8l5 5 5-5m-5 5v7"/>',
-	"Oil": '<path d="M12 3C10 7 5 11 5 15a7 7 0 0 0 14 0c0-4-5-8-7-12Z"/><path d="M8 15a4 4 0 0 0 4 4"/>',
-	"Water": '<path d="M12 3C10 7 5 11 5 15a7 7 0 0 0 14 0c0-4-5-8-7-12ZM5 15c3-4 10 4 14 0"/>',
-	"inspect": '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
-	"expand": '<path d="M4 10V4h6m4 0h6v6m0 4v6h-6m-4 0H4v-6m4-2h8m-4-4v8"/>',
-	"build": '<path d="m4 21 9-9m-5-6 4-4 9 9-4 4Zm5-3 5 5"/>',
-	"market": '<path d="M4 8h16l-4-4m4 12H4l4 4"/>',
-	"house": '<path d="m3 11 9-8 9 8M6 9v12h12V9m-9 12v-8h6v8"/>',
-	"well": '<path d="M4 20h16M6 20V10h12v10M4 10l8-7 8 7m-8 0v7m-3-4h6"/>',
-	"people": '<circle cx="9" cy="7" r="3"/><path d="M3 21v-4a6 6 0 0 1 12 0v4m1-16a3 3 0 0 1 0 6m3 10v-4a5 5 0 0 0-2-4"/>'
+# Pixel-art ikone iz dizajn-paketa (assets/ikone). Izvorne su 16x16; crtaju se
+# nearest-neighbor na cjelobrojnim visekratnicima da ostanu ostre.
+
+const BASE := "res://assets/ikone/"
+
+# Resursi i male ikone zgrada - jedna varijanta, pune boje.
+const PUNE := {
+	"Money": "resursi/zlato",
+	"Food": "resursi/hrana",
+	"Wood": "resursi/drvo",
+	"Stone": "resursi/kamen",
+	"Iron": "resursi/zeljezo",
+	"Oil": "resursi/nafta",
+	"Water": "resursi/voda",
+	"well": "resursi/bunar",
+	"farm": "resursi/farma",
+	"lumber": "resursi/pilana",
+	"quarry": "resursi/kamenolom",
+	"mine": "resursi/rudnik",
+	"house": "resursi/kuce",
+	"oil": "resursi/naftna",
+	"barracks": "resursi/kasarna",
+	"fort": "resursi/utvrda",
+	"capital": "resursi/vijecnica",
+	"army": "jedinice/vojska",
+	"workers": "jedinice/radnici",
+	"people": "jedinice/radnici",
 }
+
+# Kontrole - monokromatske siluete, svijetla i tamna varijanta.
+const KONTROLE := {
+	"home": "dom",
+	"inspect": "dom",
+	"expand": "sirenje",
+	"build": "cekic",
+	"market": "trgovina",
+	"pause": "pauza",
+	"play": "play",
+	"speed": "brze",
+	"menu": "meni",
+	"close": "zatvori",
+	"center": "centar",
+	"clock": "sat",
+	"lock": "brava",
+}
+
 static var cache := {}
 
-static func get_icon(key: String) -> Texture2D:
-	if cache.has(key):
-		return cache[key]
-	var source: String = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="#dce9ee" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + PATHS.get(key, PATHS.build) + '</g></svg>'
-	var image := Image.new()
-	image.load_svg_from_string(source)
-	var texture := ImageTexture.create_from_image(image)
-	cache[key] = texture
+static func get_icon(key: String, dark: bool = false) -> Texture2D:
+	var id := key + ("_t" if dark else "")
+	if cache.has(id):
+		return cache[id]
+	var path := ""
+	if KONTROLE.has(key):
+		path = BASE + "kontrole/" + KONTROLE[key] + ("_tamna" if dark else "_svijetla") + ".png"
+	elif PUNE.has(key):
+		path = BASE + PUNE[key] + ".png"
+	else:
+		path = BASE + "kontrole/cekic_svijetla.png"
+	var texture: Texture2D = load(path)
+	cache[id] = texture
 	return texture
+
+# Cjelobrojno uvecanje nearest-neighbor. Pixel ikona nacrtana na 1.5x je mutna,
+# pa se sve velicine u sucelju izvode kao 16 * cijeli broj.
+static func scaled(key: String, factor: int, dark: bool = false) -> Texture2D:
+	var id := "%s@%d%s" % [key, factor, "_t" if dark else ""]
+	if cache.has(id):
+		return cache[id]
+	var source := get_icon(key, dark)
+	if source == null or factor <= 1:
+		cache[id] = source
+		return source
+	var image := source.get_image()
+	image.resize(image.get_width() * factor, image.get_height() * factor, Image.INTERPOLATE_NEAREST)
+	cache[id] = ImageTexture.create_from_image(image)
+	return cache[id]
+
+static func has_icon(key: String) -> bool:
+	return KONTROLE.has(key) or PUNE.has(key)

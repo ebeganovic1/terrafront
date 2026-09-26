@@ -38,8 +38,9 @@ func run() -> void:
 	var scene = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
 	await process_frame
-	assert(scene.renderer.ground.texture.get_width() == World.WIDTH)
-	assert(scene.renderer.ground.texture.get_height() == World.HEIGHT)
+	var sub: int = preload("res://scripts/map/world_renderer.gd").SUB
+	assert(scene.renderer.ground.texture.get_width() == World.WIDTH * sub)
+	assert(scene.renderer.ground.texture.get_height() == World.HEIGHT * sub)
 	assert(scene.renderer.ground.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST)
 	assert(scene.renderer.ground.material == null)
 	scene.inspect(Vector2i(0, 0))
